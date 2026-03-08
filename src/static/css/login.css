@@ -1,0 +1,100 @@
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #483D8B; /* Dark Slate Blue */
+}
+
+.login-wrapper {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-section {
+    flex: 1;
+    background: linear-gradient(to right, #8A2BE2, #4B0082); /* Gradient from Blue-Violet to Indigo */
+    background-image: url('https://www.transparenttextures.com/patterns/geometric-leaves.png'); /* Subtle pattern */
+    padding: 20px;
+    position: relative;
+}
+
+.bottom-section {
+    flex: 1;
+    background-color: #6A5ACD; /* Slate Blue */
+}
+
+.login-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -25%);
+    width: 90%;
+    max-width: 420px;
+}
+
+.login-card {
+    background: #fff;
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.login-icon {
+    background-color: #8A2BE2; /* Blue-Violet */
+    color: white;
+    width: 70px;
+    height: 70px;
+    line-height: 70px;
+    border-radius: 50%;
+    font-size: 30px;
+    margin: -75px auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.5);
+}
+
+.login-card h2 {
+    color: #00BFFF; /* Deep Sky Blue */
+    font-weight: 600;
+    margin-bottom: 30px;
+}
+
+.form-control {
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.btn-acceso {
+    background-color: #00BFFF; /* Deep Sky Blue */
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-acceso:hover {
+    background-color: #1E90FF; /* Dodger Blue */
+}
+
+.login-links {
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+.login-links a {
+    color: #888;
+    text-decoration: none;
+    margin: 0 10px;
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="top-section"></div>
+        <div class="bottom-section"></div>
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2>Inicia sesión ahora</h2>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('auth.login') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ form.username(class="form-control", placeholder="Nombre de usuario") }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.password(class="form-control", placeholder="Contraseña") }}
+                    </div>
+                    <div class="form-group form-check text-start my-3">
+                        {{ form.remember_me(class="form-check-input") }}
+                        {{ form.remember_me.label(class="form-check-label") }}
+                    </div>
+                    {{ form.submit(class="btn btn-acceso") }}
+                </form>
+                <div class="login-links">
+                    <a href="#">¿No tienes una cuenta?</a>
+                    <a href="#">¿Se te olvidó tu contraseña?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

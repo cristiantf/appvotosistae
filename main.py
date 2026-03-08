@@ -1,15 +1,10 @@
-import os
+from src import create_app
 
-from flask import Flask, send_file
+app = create_app()
 
-app = Flask(__name__)
-
-@app.route("/")
+@app.route('/')
 def index():
-    return send_file('src/index.html')
+    return '<h1>Welcome to the Voting App</h1>'
 
-def main():
-    app.run(port=int(os.environ.get('PORT', 80)))
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Cast Your Vote for {{ period.name }}</h2>
+    <p>Please select one of the following lists to cast your vote. This action is final.</p>
+    <hr>
+
+    <form action="" method="post" novalidate>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Select a List</h5>
+                {% for list in lists %}
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="candidate_list" id="list{{ list.id }}" value="{{ list.id }}" required>
+                    <label class="form-check-label" for="list{{ list.id }}">
+                        <strong>{{ list.name }}</strong>
+                    </label>
+                    <ul class="list-unstyled ms-4 mt-2">
+                        {% for candidate in list.candidates %}
+                            <li><small>{{ candidate.name }}</small></li>
+                        {% else %}
+                            <li><small>No candidates in this list.</small></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Submit Your Vote</button>
+    </form>
+    <hr>
+    <a href="{{ url_for('voto.index') }}" class="btn btn-outline-secondary">Back to Elections</a>
+</div>
+{% endblock %}

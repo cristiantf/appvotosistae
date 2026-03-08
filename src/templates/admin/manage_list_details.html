@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Ensure the Select2 container fits within the form layout */
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Gestionar Candidatos para {{ candidate_list.name }}</h2>
+    <hr>
+
+    <!-- Form to add a new candidate -->
+    <div class="card my-4">
+        <div class="card-body">
+            <h5 class="card-title">Añadir Nuevo Candidato</h5>
+            <form action="{{ url_for('admin.manage_list_details', list_id=candidate_list.id) }}" method="post" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.voter.label(class="form-label") }}<br>
+                    {# This renders the SelectField that Select2 will enhance #}
+                    {{ form.voter(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.dignity.label(class="form-label") }}<br>
+                    {{ form.dignity(class="form-control", size=32) }}
+                </div>
+                <p>{{ form.submit(class="btn btn-primary") }}</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- List of existing candidates -->
+    <h3>Candidatos Existentes</h3>
+    <ul class="list-group">
+        {% for candidate in candidates %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ candidate.name }} - {{ candidate.dignity }}
+        </li>
+        {% else %}
+        <li class="list-group-item">No se encontraron candidatos para esta lista.</li>
+        {% endfor %}
+    </ul>
+
+    <hr>
+    <a href="{{ url_for('admin.manage_period_details', period_id=candidate_list.election_period_id) }}" class="btn btn-outline-secondary">Volver a las Listas de Candidatos</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // The `form.voter` field is rendered with id='voter' by default.
+    $('#voter').select2({
+        placeholder: 'Busca por nombre, apellido o cédula...',
+        minimumInputLength: 2,
+        ajax: {
+            url: "{{ url_for('admin.search_voters', period_id=period.id) }}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term // search term
+                };
+            },
+            processResults: function (data, params) {
+                // Pass the results to Select2
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        }
+    });
+});
+</script>
+{% endblock %}

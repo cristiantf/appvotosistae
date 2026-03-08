@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Manage Election Periods</h2>
+    <hr>
+
+    <!-- Form to create a new election period -->
+    <div class="card my-4">
+        <div class="card-body">
+            <h5 class="card-title">Create New Election Period</h5>
+            <form action="" method="post" novalidate>
+                {{ period_form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ period_form.name.label(class="form-label") }}<br>
+                    {{ period_form.name(class="form-control", size=32) }}
+                </div>
+                <p>{{ period_form.submit(class="btn btn-primary") }}</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- List of existing election periods -->
+    <h3>Existing Election Periods</h3>
+    <ul class="list-group">
+        {% for period in periods %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ period.name }}
+            <div>
+                <a href="{{ url_for('admin.manage_period_details', period_id=period.id) }}" class="btn btn-secondary btn-sm">Manage Lists</a>
+                <a href="{{ url_for('admin.edit_election_period', period_id=period.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('admin.delete_election_period', period_id=period.id) }}" class="btn btn-danger btn-sm">Delete</a>
+            </div>
+        </li>
+        {% else %}
+        <li class="list-group-item">No election periods found.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

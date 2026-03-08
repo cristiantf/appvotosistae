@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Panel de Administración</h2>
+    <p>Bienvenido, {{ current_user.username }}! Aquí tienes un resumen de tu aplicación.</p>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Votantes Totales</h5>
+                    <p class="card-text display-4">{{ voter_count }}</p>
+                    <p class="card-text">Votantes registrados en el sistema.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Períodos Electorales</h5>
+                    <p class="card-text display-4">{{ period_count }}</p>
+                    <p class="card-text">Períodos electorales creados.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Listas de Candidatos</h5>
+                    <p class="card-text display-4">{{ list_count }}</p>
+                    <p class="card-text">Listas de candidatos registradas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <a href="{{ url_for('admin.load_voters') }}" class="btn btn-secondary btn-lg w-100">Cargar Votantes</a>
+        </div>
+        <div class="col-md-6">
+            <a href="{{ url_for('admin.manage_elections') }}" class="btn btn-secondary btn-lg w-100">Gestionar Elecciones</a>
+        </div>
+    </div>
+
+    <h3>Usuarios del Sistema</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Es Admin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ 'Sí' if user.is_admin else 'No' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

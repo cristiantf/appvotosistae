@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Results for {{ period.name }}</h2>
+    <p>A total of <strong>{{ total_votes }}</strong> votes were cast in this election.</p>
+    <hr>
+
+    {% if lists %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">List Name</th>
+                <th scope="col">Vote Count</th>
+                <th scope="col">Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for list in lists %}
+            <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{ list.name }}</td>
+                <td>{{ list.vote_count }}</td>
+                <td>
+                    {% if total_votes > 0 %}
+                        {{ "{:.2f}%".format((list.vote_count / total_votes) * 100) }}
+                    {% else %}
+                        0.00%
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        No lists were registered for this election, so no results can be displayed.
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('main.results') }}" class="btn btn-primary mt-3">Back to All Results</a>
+</div>
+{% endblock %}

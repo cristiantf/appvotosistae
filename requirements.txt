@@ -1,6 +1,11 @@
-# Dev environment
-pip
-autopep8
-
-# App
-flask
+Flask
+Flask-SQLAlchemy
+python-dotenv
+Flask-WTF
+Flask-Login
+Flask-Migrate
+pandas
+openpyxl
+PyMySQL
+pytest
+pytest-flask
