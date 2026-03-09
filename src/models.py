@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     password_hash = db.Column(db.String(256))
     voter_id = db.Column(db.Integer, db.ForeignKey('voter.id'))
+    voter = db.relationship('Voter', backref='user', uselist=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
