@@ -1,8 +1,8 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from src import db
 from src.voto import bp
-from src.models import ElectionPeriod, Voter, CandidateList
+from src.models import ElectionPeriod, Voter, CandidateList, Vote
 
 @bp.route('/')
 @login_required
@@ -12,9 +12,12 @@ def index():
         flash('No voter profile found for the current user. Please contact an administrator.', 'danger')
         return redirect(url_for('main.index'))
 
+    # Get a list of IDs of the election periods the voter has already voted in
     voted_in_ids = [vote.election_period_id for vote in voter.votes]
+
+    # Query for active election periods where the voter has NOT yet voted
     available_elections = ElectionPeriod.query.filter(
-        ElectionPeriod.is_active==True,
+        ElectionPeriod.is_active == True,
         ~ElectionPeriod.id.in_(voted_in_ids)
     ).all()
 
@@ -32,7 +35,7 @@ def cast_vote(period_id):
         return redirect(url_for('voto.index'))
 
     # Check if a vote from this voter for this period already exists
-    if any(vote.election_period_id == period.id for vote in voter.votes):
+    if voter.votes.filter_by(election_period_id=period.id).first():
         flash('You have already voted in this election.', 'info')
         return redirect(url_for('voto.index'))
 
@@ -44,27 +47,24 @@ def cast_vote(period_id):
 
         selected_list = CandidateList.query.get(list_id)
         if not selected_list or selected_list.election_period_id != period.id:
-            flash('Invalid selection.', 'danger')
+            flash('Invalid selection. Please try again.', 'danger')
             return redirect(url_for('voto.index'))
 
         try:
-            # This seems incorrect, CandidateList does not have a vote_count
-            # You might need to add a new Vote record instead
-            # For now, let's assume you will create a Vote object
-            # Example:
-            # new_vote = Vote(voter_id=voter.id, election_period_id=period.id, candidate_list_id=list_id)
-            # db.session.add(new_vote)
-            
-            # For the purpose of fixing the immediate error, I will comment out the problematic lines
-            # selected_list.vote_count += 1
-            # voter.voted_in.append(period)
-            
+            # Create a new Vote record
+            new_vote = Vote(
+                voter_id=voter.id, 
+                election_period_id=period.id, 
+                candidate_list_id=selected_list.id
+            )
+            db.session.add(new_vote)
             db.session.commit()
-            flash(f'Thank you for voting! You voted for {selected_list.name}.', 'success')
+            flash(f'Thank you for voting! Your vote for {selected_list.name} has been cast.', 'success')
             return redirect(url_for('main.index'))
         except Exception as e:
             db.session.rollback()
-            flash(f'An error occurred while casting your vote: {e}', 'danger')
+            current_app.logger.error(f"An error occurred while casting a vote: {e}")
+            flash('An unexpected error occurred. Please contact the administrator.', 'danger')
             return redirect(url_for('voto.index'))
 
     lists = CandidateList.query.filter_by(election_period_id=period.id).all()

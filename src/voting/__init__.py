@@ -1,3 +1,5 @@
 from flask import Blueprint
 
-voting_bp = Blueprint('voting', __name__)
+bp = Blueprint('voting', __name__, template_folder='templates')
+
+from src.voting import routes

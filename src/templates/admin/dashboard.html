@@ -1,0 +1,31 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Admin Dashboard</h1>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <hr>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Manage Elections</h5>
+                    <p class="card-text">Create, view, and manage election periods.</p>
+                    <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-primary">Go to Elections</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Manage Users</h5>
+                    <p class="card-text">View users and manage their administrator status.</p>
+                    <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">Go to Users</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

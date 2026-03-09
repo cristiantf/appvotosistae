@@ -1,19 +1,27 @@
 from flask import render_template, flash, redirect, url_for
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from src.main import bp
-from src.models import ElectionPeriod, CandidateList
+from src.models import ElectionPeriod, CandidateList, Vote, User
+
 
 @bp.route('/')
 @bp.route('/index')
 def index():
-    return render_template('index.html', title='Home')
+    try:
+        active_elections = ElectionPeriod.query.filter_by(is_active=True).all()
+    except SQLAlchemyError:
+        flash('Error de base de datos: no se pudieron cargar las elecciones.', 'danger')
+        active_elections = []
+    return render_template('index.html', title='Home', elections=active_elections)
+
 
 @bp.route('/results')
 def results():
     try:
         finished_elections = ElectionPeriod.query.filter_by(is_active=False).order_by(ElectionPeriod.id.desc()).all()
-    except SQLAlchemyError as e:
-        flash('Database error: could not load election results.', 'danger')
+    except SQLAlchemyError:
+        flash('Error de base de datos: no se pudieron cargar los resultados.', 'danger')
         finished_elections = []
     return render_template('main/results.html', elections=finished_elections)
 
@@ -22,16 +30,29 @@ def results():
 def period_results(period_id):
     try:
         period = ElectionPeriod.query.get_or_404(period_id)
-        
         if period.is_active:
-            flash('Results for this election are not yet available.', 'info')
+            flash('Los resultados para esta elección aún no están disponibles.', 'info')
             return redirect(url_for('main.results'))
 
-        lists = CandidateList.query.filter_by(election_period_id=period.id).order_by(CandidateList.vote_count.desc()).all()
-        total_votes = sum(list.vote_count for list in lists)
+        results = (
+            db.session.query(
+                CandidateList.id,
+                CandidateList.name,
+                CandidateList.image,
+                func.count(Vote.id).label('vote_count')
+            )
+            .outerjoin(Vote, Vote.candidate_list_id == CandidateList.id)
+            .filter(CandidateList.election_period_id == period_id)
+            .group_by(CandidateList.id)
+            .order_by(func.count(Vote.id).desc())
+            .all()
+        )
 
-    except SQLAlchemyError as e:
-        flash('Database error: could not load period results.', 'danger')
+        total_votes = Vote.query.filter_by(election_period_id=period_id).count()
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        flash('Error de base de datos: no se pudieron cargar los resultados del periodo.', 'danger')
         return redirect(url_for('main.results'))
 
-    return render_template('main/period_results.html', period=period, lists=lists, total_votes=total_votes)
+    return render_template('main/period_results.html', period=period, lists_results=results, total_votes=total_votes)

@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Vote in {{ period.name }}</h1>
+    
+    <form method="post" action="{{ url_for('main.vote', period_id=period.id) }}">
+        <div class="list-group">
+            {% for list in period.lists %}
+            <div class="list-group-item mb-4 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">{{ list.name }}</h4>
+                    {% if list.image %}
+                        <img src="{{ url_for('static', filename=list.image) }}" alt="List Image" class="img-fluid rounded" style="max-width: 100px;">
+                    {% endif %}
+                </div>
+
+                <ul class="list-unstyled">
+                    {% for candidate in list.candidates %}
+                    <li class="media mb-3 p-3 border rounded">
+                        {% if candidate.image %}
+                            <img src="{{ url_for('static', filename=candidate.image) }}" class="mr-3 rounded-circle" alt="Candidate Image" style="width: 64px; height: 64px;">
+                        {% endif %}
+                        <div class="media-body">
+                            <h5 class="mt-0 mb-1">{{ candidate.name }}</h5>
+                            {{ candidate.dignity }}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <button type="submit" name="list_id" value="{{ list.id }}" class="btn btn-primary btn-block">Vote for this List</button>
+            </div>
+            {% endfor %}
+        </div>
+    </form>
+</div>
+{% endblock %}

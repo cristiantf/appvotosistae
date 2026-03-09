@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="h3 mb-4">Gestionar Periodo Electoral: <strong>{{ period.name }}</strong></h1>
+
+    <div class="row">
+        <!-- Columna Izquierda -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Añadir Nueva Lista</div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.add_list', period_id=period.id) }}" method="post" enctype="multipart/form-data">
+                        {{ list_form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ list_form.name.label(class="form-label") }}
+                            {{ list_form.name(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ list_form.image.label(class="form-label") }}
+                            {{ list_form.image(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Crear Lista</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Listas Existentes</div>
+                <ul class="list-group list-group-flush">
+                    {% for list in period.lists %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if list.image %}
+                                <img src="{{ url_for('static', filename=list.image) }}" alt="Imagen de la lista" class="img-thumbnail mr-3" style="width: 50px; height: 50px; object-fit: cover;">
+                            {% endif %}
+                            <a href="{{ url_for('admin.manage_list', list_id=list.id) }}">{{ list.name }}</a>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('admin.edit_list', list_id=list.id) }}" class="btn btn-sm btn-secondary">Editar</a>
+                            <form action="{{ url_for('admin.delete_list', list_id=list.id) }}" method="post" class="d-inline ms-1">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar esta lista?')">Eliminar</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item">No hay listas en este periodo.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Cargar Votantes</div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.upload_voters', period_id=period.id) }}" method="post" enctype="multipart/form-data">
+                        {{ voter_form.hidden_tag() }}
+                        <div class="mb-3">
+                             {{ voter_form.file.label(class="form-label") }}
+                             {{ voter_form.file(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Subir</button>
+                        <a href="{{ url_for('static', filename='downloads/plantilla_votantes.csv') }}" class="btn btn-secondary ms-2">Descargar Plantilla CSV</a>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Padrón Electoral del Periodo</div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('admin.manage_election_period', period_id=period.id) }}">
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="Buscar por Cédula, Nombre o Apellido..." name="search" value="{{ request.args.get('search', '') }}">
+                            <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                        </div>
+                    </form>
+
+                    <ul class="list-group list-group-flush">
+                        {% for voter in voters %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ voter.name }} {{ voter.lastname }} ({{ voter.cedula }})</span>
+                            <div>
+                                <a href="{{ url_for('admin.edit_voter', voter_id=voter.id, from_period=period.id) }}" class="btn btn-sm btn-secondary">Editar</a>
+                                <form action="{{ url_for('admin.delete_voter_from_period', voter_id=voter.id, period_id=period.id) }}" method="POST" class="d-inline ms-1">
+                                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                </form>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item">
+                            {% if request.args.get('search', '') %}
+                                No se encontraron votantes para la búsqueda "{{ request.args.get('search', '') }}".
+                            {% else %}
+                                No hay votantes en este periodo.
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

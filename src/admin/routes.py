@@ -1,336 +1,334 @@
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
-from flask_login import login_required
-from sqlalchemy import or_
-from sqlalchemy.exc import SQLAlchemyError
+import os
+import secrets
+from flask import render_template, redirect, url_for, flash, request
+from flask_login import login_required, current_user
+from sqlalchemy import func
 from src import db
 from src.admin import bp
 from src.admin.forms import (
-    FileUploadForm, ElectionPeriodForm, CandidateListForm, CandidateForm, VoterForm
+    FileUploadForm, ElectionPeriodForm, CandidateListForm,
+    AddCandidateForm, EditCandidateForm, VoterForm
 )
-from src.models import User, Voter, ElectionPeriod, CandidateList, Candidate
+from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote
+from src.utils import load_voters_from_excel
+from werkzeug.utils import secure_filename
 from src.decorators import admin_required
-import pandas as pd
-import os
+
+def save_picture(form_picture, subfolder='profile_pics'):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join('src/static/uploads', subfolder, picture_fn)
+
+    output_dir = os.path.dirname(picture_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    form_picture.save(picture_path)
+
+    return os.path.join('uploads', subfolder, picture_fn)
 
 @bp.route('/')
 @login_required
 @admin_required
-def index():
-    try:
-        voter_count = Voter.query.count()
-        period_count = ElectionPeriod.query.count()
-        list_count = CandidateList.query.count()
-        users = User.query.all()
-    except SQLAlchemyError as e:
-        flash('Database error: could not load dashboard data.', 'danger')
-        voter_count, period_count, list_count = 0, 0, 0
-        users = []
-        
-    return render_template('admin/index.html', 
-                           title='Admin Dashboard', 
-                           users=users,
-                           voter_count=voter_count,
-                           period_count=period_count,
-                           list_count=list_count)
+def admin_dashboard():
+    return render_template('admin/dashboard.html')
 
-@bp.route('/elections', methods=['GET', 'POST'])
+@bp.route('/<int:period_id>/upload_voters', methods=['POST'])
 @login_required
 @admin_required
-def manage_elections():
-    period_form = ElectionPeriodForm()
-    if period_form.validate_on_submit():
+def upload_voters(period_id):
+    form = FileUploadForm()
+    if form.validate_on_submit():
+        file = form.file.data
+        filename = secure_filename(file.filename)
+        filepath = os.path.join('src/static/uploads', filename)
+        file.save(filepath)
         try:
-            new_period = ElectionPeriod(name=period_form.name.data)
-            db.session.add(new_period)
-            db.session.commit()
-            flash('New election period has been created.', 'success')
+            load_voters_from_excel(filepath, period_id)
+            flash('Votantes cargados correctamente!', 'success')
         except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating election period: {e}', 'danger')
-        return redirect(url_for('admin.manage_elections'))
+            flash(f'Ocurrió un error: {e}', 'danger')
+    else:
+        flash('Error al subir el archivo.', 'danger')
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
 
+@bp.route('/election_periods')
+@login_required
+@admin_required
+def list_election_periods():
     periods = ElectionPeriod.query.all()
-    return render_template('admin/manage_elections.html', title='Manage Elections', 
-                           periods=periods, period_form=period_form)
+    return render_template('admin/list_election_periods.html', periods=periods)
 
-@bp.route('/elections/edit/<int:period_id>', methods=['GET', 'POST'])
+@bp.route('/election_periods/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_election_period():
+    form = ElectionPeriodForm()
+    if form.validate_on_submit():
+        new_period = ElectionPeriod(name=form.name.data)
+        db.session.add(new_period)
+        db.session.commit()
+        flash('¡Nuevo periodo electoral creado!', 'success')
+        return redirect(url_for('admin.list_election_periods'))
+    return render_template('admin/add_election_period.html', form=form)
+
+@bp.route('/election_periods/<int:period_id>', methods=['GET'])
+@login_required
+@admin_required
+def manage_election_period(period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
+    list_form = CandidateListForm()
+    voter_form = FileUploadForm()
+
+    search_query = request.args.get('search', '').strip()
+    all_voters = period.voters
+    
+    if search_query:
+        sq_lower = search_query.lower()
+        voters_to_display = [v for v in all_voters if 
+                             sq_lower in v.cedula.lower() or 
+                             sq_lower in v.name.lower() or 
+                             sq_lower in v.lastname.lower()]
+    else:
+        voters_to_display = all_voters
+
+    return render_template('admin/manage_election_period.html', 
+                           period=period, 
+                           list_form=list_form, 
+                           voter_form=voter_form,
+                           voters=voters_to_display)
+
+@bp.route('/voters/<int:voter_id>/period/<int:period_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_voter_from_period(voter_id, period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
+    voter = Voter.query.get_or_404(voter_id)
+    if voter in period.voters:
+        period.voters.remove(voter)
+        db.session.commit()
+        flash(f'El votante {voter.name} {voter.lastname} ha sido removido del periodo.', 'success')
+    else:
+        flash('El votante no se encuentra en este periodo electoral.', 'warning')
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
+
+@bp.route('/election_periods/<int:period_id>/edit', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def edit_election_period(period_id):
-    period = db.session.get(ElectionPeriod, period_id)
-    if not period:
-        flash('Election period not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
-
+    period = ElectionPeriod.query.get_or_404(period_id)
     form = ElectionPeriodForm(obj=period)
     if form.validate_on_submit():
-        try:
-            period.name = form.name.data
-            db.session.commit()
-            flash('The election period has been updated.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating election period: {e}', 'danger')
-        return redirect(url_for('admin.manage_elections'))
+        period.name = form.name.data
+        db.session.commit()
+        flash('El periodo electoral ha sido actualizado.', 'success')
+        return redirect(url_for('admin.list_election_periods'))
+    return render_template('admin/edit_election_period.html', form=form, period=period)
 
-    return render_template('admin/edit_election_period.html', title='Edit Election Period', form=form, period=period)
-
-@bp.route('/elections/delete/<int:period_id>', methods=['POST'])
+@bp.route('/election_periods/<int:period_id>/delete', methods=['POST'])
 @login_required
 @admin_required
 def delete_election_period(period_id):
-    period = db.session.get(ElectionPeriod, period_id)
-    if not period:
-        flash('Election period not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
+    period = ElectionPeriod.query.get_or_404(period_id)
+    db.session.delete(period)
+    db.session.commit()
+    flash('El periodo electoral ha sido eliminado.', 'success')
+    return redirect(url_for('admin.list_election_periods'))
 
-    try:
-        period.voters = []
-        lists = CandidateList.query.filter_by(election_period_id=period.id).all()
-        for lst in lists:
-            Candidate.query.filter_by(candidate_list_id=lst.id).delete()
-            db.session.delete(lst)
-        db.session.delete(period)
-        db.session.commit()
-        flash(f'Election period "{period.name}" and all its related data have been deleted.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting election period: {e}', 'danger')
-    return redirect(url_for('admin.manage_elections'))
-
-@bp.route('/elections/toggle_status/<int:period_id>', methods=['POST'])
+@bp.route('/election_periods/<int:period_id>/toggle_active', methods=['POST'])
 @login_required
 @admin_required
-def toggle_election_status(period_id):
-    period = db.session.get(ElectionPeriod, period_id)
-    if not period:
-        flash('Election period not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
-    try:
-        period.is_active = not period.is_active
-        db.session.commit()
-        status = "activated" if period.is_active else "deactivated"
-        flash(f'Election period has been {status}.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error toggling election status: {e}', 'danger')
-    return redirect(url_for('admin.manage_elections'))
+def toggle_active_period(period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
+    period.is_active = not period.is_active
+    db.session.commit()
+    flash(f'El estado de "{period.name}" ha sido cambiado a {"Activo" if period.is_active else "Inactivo"}.', 'success')
+    return redirect(url_for('admin.list_election_periods'))
 
-@bp.route('/elections/<int:period_id>', methods=['GET', 'POST'])
+@bp.route('/election_periods/<int:period_id>/results')
 @login_required
 @admin_required
-def manage_period_details(period_id):
-    period = db.session.get(ElectionPeriod, period_id)
-    if not period:
-        flash('Election period not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
-
-    list_form = CandidateListForm()
-    upload_form = FileUploadForm()
-    search_query = request.args.get('search', '')
-
-    if upload_form.validate_on_submit() and 'file' in request.files:
-        file = upload_form.file.data
-        try:
-            if not os.path.exists('uploads'):
-                os.makedirs('uploads')
-            filepath = os.path.join('uploads', file.filename)
-            file.save(filepath)
-            df = pd.read_csv(filepath, dtype=str) if filepath.endswith('.csv') else pd.read_excel(filepath, dtype=str)
-            df.columns = [col.strip().upper() for col in df.columns]
-
-            for index, row in df.iterrows():
-                cedula, name, lastname = row['CÉDULA'], row['NOMBRES'], row['APELLIDOS']
-                voter = Voter.query.filter_by(cedula=cedula).first()
-                if not voter:
-                    voter = Voter(cedula=cedula, name=name, lastname=lastname)
-                    db.session.add(voter)
-                    db.session.flush()
-                else:
-                    voter.name, voter.lastname = name, lastname
-                if voter not in period.voters:
-                    period.voters.append(voter)
-                if not User.query.filter_by(voter_id=voter.id).first():
-                    user = User(username=cedula, voter_id=voter.id)
-                    user.set_password(cedula)
-                    db.session.add(user)
-
-            db.session.commit()
-            flash('Voters loaded successfully.', 'success')
-            os.remove(filepath)
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error loading voters: {e}', 'danger')
-        return redirect(url_for('admin.manage_period_details', period_id=period.id))
+def election_results(period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
     
-    if list_form.validate_on_submit():
-        try:
-            new_list = CandidateList(name=list_form.name.data, election_period_id=period.id)
-            db.session.add(new_list)
-            db.session.commit()
-            flash('New candidate list created.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating list: {e}', 'danger')
-        return redirect(url_for('admin.manage_period_details', period_id=period.id))
-
-    voters_query = Voter.query.with_parent(period)
-    if search_query:
-        search_term = f'%{search_query}%'
-        voters_query = voters_query.filter(or_(Voter.cedula.like(search_term), Voter.name.like(search_term), Voter.lastname.like(search_term)))
+    results = db.session.query(
+        Vote.candidate_list_id,
+        func.count(Vote.id)
+    ).filter_by(election_period_id=period_id).group_by(Vote.candidate_list_id).all()
     
-    voters = voters_query.all()
-    lists = CandidateList.query.filter_by(election_period_id=period.id).all()
+    votes_by_list = {list_id: count for list_id, count in results}
     
-    return render_template('admin/manage_period_details.html', title=f'Manage {period.name}', period=period, lists=lists, list_form=list_form, upload_form=upload_form, voters=voters, search_query=search_query)
+    chart_labels = []
+    chart_data = []
+    
+    for clist in period.lists:
+        chart_labels.append(clist.name)
+        chart_data.append(votes_by_list.get(clist.id, 0))
+        
+    return render_template('admin/results.html', 
+                           period=period, 
+                           chart_labels=chart_labels, 
+                           chart_data=chart_data)
 
-@bp.route('/voters/edit/<int:voter_id>/<int:period_id>', methods=['GET', 'POST'])
+@bp.route('/election_periods/<int:period_id>/lists/add', methods=['POST'])
 @login_required
 @admin_required
-def edit_voter(voter_id, period_id):
-    voter = db.session.get(Voter, voter_id)
-    if not voter:
-        flash('Voter not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
-
-    form = VoterForm(original_cedula=voter.cedula, obj=voter)
+def add_list(period_id):
+    form = CandidateListForm()
     if form.validate_on_submit():
-        try:
-            voter.name = form.name.data
-            voter.lastname = form.lastname.data
-            voter.cedula = form.cedula.data
-            db.session.commit()
-            flash('Voter has been updated successfully.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating voter: {e}', 'danger')
-        return redirect(url_for('admin.manage_period_details', period_id=period_id))
+        new_list = CandidateList(name=form.name.data, election_period_id=period_id)
+        if form.image.data:
+            picture_file = save_picture(form.image.data, subfolder='list_images')
+            new_list.image = picture_file
+        db.session.add(new_list)
+        db.session.commit()
+        flash('Nueva lista creada con éxito.', 'success')
+    else:
+        flash('No se pudo crear la lista. Revisa los datos.', 'danger')
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
 
-    return render_template('admin/edit_voter.html', title='Edit Voter', form=form, voter=voter, period_id=period_id)
-
-@bp.route('/elections/<int:period_id>/delete_voter/<int:voter_id>', methods=['POST'])
+@bp.route('/lists/<int:list_id>/edit', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def delete_voter_from_period(period_id, voter_id):
-    period = db.session.get(ElectionPeriod, period_id)
-    voter = db.session.get(Voter, voter_id)
-    if not period or not voter:
-        flash('Period or voter not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
-    try:
-        if voter in period.voters:
-            period.voters.remove(voter)
-            db.session.commit()
-            flash(f'Voter {voter.name} {voter.lastname} has been removed from the period.', 'success')
-        else:
-            flash('Voter is not associated with this period.', 'warning')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error removing voter: {e}', 'danger')
-    return redirect(url_for('admin.manage_period_details', period_id=period_id))
-
-@bp.route('/lists/edit/<int:list_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def edit_candidate_list(list_id):
-    candidate_list = db.session.get(CandidateList, list_id)
-    if not candidate_list:
-        flash('Candidate list not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
+def edit_list(list_id):
+    candidate_list = CandidateList.query.get_or_404(list_id)
     form = CandidateListForm(obj=candidate_list)
     if form.validate_on_submit():
-        try:
-            candidate_list.name = form.name.data
-            db.session.commit()
-            flash('The candidate list has been updated.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating candidate list: {e}', 'danger')
-        return redirect(url_for('admin.manage_period_details', period_id=candidate_list.election_period_id))
-    return render_template('admin/edit_candidate_list.html', title='Edit Candidate List', form=form, candidate_list=candidate_list)
-
-@bp.route('/lists/delete/<int:list_id>', methods=['POST'])
-@login_required
-@admin_required
-def delete_candidate_list(list_id):
-    candidate_list = db.session.get(CandidateList, list_id)
-    if not candidate_list:
-        flash('Candidate list not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
-    period_id = candidate_list.election_period_id
-    try:
-        Candidate.query.filter_by(candidate_list_id=list_id).delete()
-        db.session.delete(candidate_list)
+        candidate_list.name = form.name.data
+        if form.image.data:
+            picture_file = save_picture(form.image.data, subfolder='list_images')
+            candidate_list.image = picture_file
         db.session.commit()
-        flash(f'Candidate list "{candidate_list.name}" and all its candidates have been deleted.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting candidate list: {e}', 'danger')
-    return redirect(url_for('admin.manage_period_details', period_id=period_id))
+        flash('La lista ha sido actualizada.', 'success')
+        return redirect(url_for('admin.manage_election_period', period_id=candidate_list.election_period_id))
+    return render_template('admin/edit_list.html', form=form, candidate_list=candidate_list)
 
-@bp.route('/voters/search/<int:period_id>')
+@bp.route('/lists/<int:list_id>/delete', methods=['POST'])
 @login_required
 @admin_required
-def search_voters(period_id):
-    search_term = request.args.get('q', '')
-    period = db.session.get(ElectionPeriod, period_id)
-    if not period or not search_term:
-        return jsonify([])
-    
-    search_query = f'%{search_term}%'
-    voters = Voter.query.with_parent(period).filter(
-        or_(
-            Voter.cedula.like(search_query),
-            Voter.name.like(search_query),
-            Voter.lastname.like(search_query)
-        )
-    ).all()
-    
-    results = [{'id': v.id, 'text': f'{v.name} {v.lastname} ({v.cedula})'} for v in voters]
-    return jsonify(results)
+def delete_list(list_id):
+    candidate_list = CandidateList.query.get_or_404(list_id)
+    period_id = candidate_list.election_period_id
+    db.session.delete(candidate_list)
+    db.session.commit()
+    flash('La lista ha sido eliminada.', 'success')
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
 
-@bp.route('/lists/<int:list_id>', methods=['GET', 'POST'])
+@bp.route('/lists/<int:list_id>', methods=['GET'])
 @login_required
 @admin_required
-def manage_list_details(list_id):
-    candidate_list = db.session.get(CandidateList, list_id)
-    if not candidate_list:
-        flash('Candidate list not found.', 'danger')
-        return redirect(url_for('admin.manage_elections'))
+def manage_list(list_id):
+    candidate_list = CandidateList.query.get_or_404(list_id)
+    form = AddCandidateForm()
+    
+    period_voters = candidate_list.election_period.voters
+    
+    candidates_in_period = Candidate.query.join(CandidateList).filter(CandidateList.election_period_id == candidate_list.election_period_id).all()
+    assigned_voter_ids = {c.voter_id for c in candidates_in_period}
+    
+    form.voter.choices = [
+        (v.id, f'{v.name} {v.lastname} ({v.cedula})') for v in period_voters if v.id not in assigned_voter_ids
+    ]
+    
+    return render_template('admin/manage_list.html', candidate_list=candidate_list, form=form)
 
-    form = CandidateForm()
-    if request.method == 'POST':
-        voter_id = request.form.get('voter')
-        if voter_id:
-            voter = db.session.get(Voter, voter_id)
-            if voter:
-                form.voter.choices = [(voter.id, f'{voter.name} {voter.lastname}')]
+@bp.route('/lists/<int:list_id>/candidates/add', methods=['POST'])
+@login_required
+@admin_required
+def add_candidate(list_id):
+    candidate_list = CandidateList.query.get_or_404(list_id)
+    form = AddCandidateForm()
+    period_voters = candidate_list.election_period.voters
+    candidates_in_period = Candidate.query.join(CandidateList).filter(CandidateList.election_period_id == candidate_list.election_period_id).all()
+    assigned_voter_ids = {c.voter_id for c in candidates_in_period}
+    form.voter.choices = [(v.id, f'{v.name} {v.lastname} ({v.cedula})') for v in period_voters if v.id not in assigned_voter_ids]
 
     if form.validate_on_submit():
-        try:
-            voter = db.session.get(Voter, form.voter.data)
-            existing_candidate = Candidate.query.filter_by(voter_id=voter.id, candidate_list_id=list_id).first()
-            if existing_candidate:
-                flash('This voter is already a candidate in this list.', 'warning')
-            elif voter:
-                new_candidate = Candidate(
-                    name=f'{voter.name} {voter.lastname}',
-                    dignity=form.dignity.data,
-                    candidate_list_id=candidate_list.id,
-                    voter_id=voter.id
-                )
-                db.session.add(new_candidate)
-                db.session.commit()
-                flash('New candidate has been added.', 'success')
-            else:
-                flash('Selected voter not found.', 'danger')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error adding candidate: {e}', 'danger')
-        return redirect(url_for('admin.manage_list_details', list_id=list_id))
+        voter = Voter.query.get(form.voter.data)
+        new_candidate = Candidate(
+            name=f'{voter.name} {voter.lastname}',
+            dignity=form.dignity.data, 
+            candidate_list_id=list_id,
+            voter_id=voter.id
+        )
+        if form.image.data:
+            picture_file = save_picture(form.image.data, subfolder='candidate_pics')
+            new_candidate.image = picture_file
+        db.session.add(new_candidate)
+        db.session.commit()
+        flash('Nuevo candidato añadido con éxito.', 'success')
+    else:
+        # Form errors will be flashed by Flask-WTF
+        flash('No se pudo añadir al candidato. Revisa los datos.', 'danger')
+    return redirect(url_for('admin.manage_list', list_id=list_id))
 
-    candidates = Candidate.query.filter_by(candidate_list_id=list_id).all()
-    period = db.session.get(ElectionPeriod, candidate_list.election_period_id)
-    return render_template('admin/manage_list_details.html', title=f'Manage {candidate_list.name}', 
-                           candidate_list=candidate_list, candidates=candidates, form=form, period=period)
+@bp.route('/candidates/<int:candidate_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_candidate(candidate_id):
+    candidate = Candidate.query.get_or_404(candidate_id)
+    form = EditCandidateForm(obj=candidate)
+    if form.validate_on_submit():
+        candidate.dignity = form.dignity.data
+        if form.image.data:
+            picture_file = save_picture(form.image.data, subfolder='candidate_pics')
+            candidate.image = picture_file
+        db.session.commit()
+        flash('El candidato ha sido actualizado.', 'success')
+        return redirect(url_for('admin.manage_list', list_id=candidate.candidate_list_id))
+    return render_template('admin/edit_candidate.html', form=form, candidate=candidate)
+
+
+@bp.route('/candidates/<int:candidate_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_candidate(candidate_id):
+    candidate = Candidate.query.get_or_404(candidate_id)
+    list_id = candidate.candidate_list_id
+    db.session.delete(candidate)
+    db.session.commit()
+    flash('El candidato ha sido eliminado.', 'success')
+    return redirect(url_for('admin.manage_list', list_id=list_id))
+
+@bp.route('/voters/<int:voter_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_voter(voter_id):
+    voter = Voter.query.get_or_404(voter_id)
+    from_period_id = request.args.get('from_period', type=int)
+    form = VoterForm(obj=voter, original_cedula=voter.cedula)
+    if form.validate_on_submit():
+        voter.name = form.name.data
+        voter.lastname = form.lastname.data
+        voter.cedula = form.cedula.data
+        db.session.commit()
+        flash('Información del votante actualizada.', 'success')
+        if from_period_id:
+            return redirect(url_for('admin.manage_election_period', period_id=from_period_id))
+        else:
+            return redirect(url_for('admin.admin_dashboard'))
+            
+    return render_template('admin/edit_voter.html', form=form, voter=voter, from_period=from_period_id)
+
+
+@bp.route('/users')
+@login_required
+@admin_required
+def list_users():
+    users = User.query.all()
+    return render_template('admin/list_users.html', users=users)
+
+@bp.route('/users/<int:user_id>/toggle_admin', methods=['POST'])
+@login_required
+@admin_required
+def toggle_admin(user_id):
+    user = User.query.get_or_404(user_id)
+    if user == current_user:
+        flash('No puedes cambiar tu propio estado de administrador.', 'danger')
+    else:
+        user.is_admin = not user.is_admin
+        db.session.commit()
+        flash(f'{user.username} es ahora {"un administrador" if user.is_admin else "un usuario normal"}.', 'success')
+    return redirect(url_for('admin.list_users'))

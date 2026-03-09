@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container">
-    <h2>Edit Election Period</h2>
+    <h2>Editar Periodo Electoral</h2>
     <hr>
 
     <div class="card my-4">
@@ -11,11 +11,11 @@
                 {{ form.hidden_tag() }}
                 <div class="mb-3">
                     {{ form.name.label(class="form-label") }}<br>
-                    {{ form.name(class="form-control", size=32, value=period.name) }}
+                    {{ form.name(class="form-control", size=32) }}
                 </div>
                 <p>
-                    {{ form.submit(class="btn btn-primary") }}
-                    <a href="{{ url_for('admin.manage_elections') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-secondary">Cancelar</a>
                 </p>
             </form>
         </div>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        <h1>{{ period.name }}</h1>
+        <p class="lead">Selecciona la lista de tu preferencia y haz clic en "Votar" para registrar tu elección.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row justify-content-center">
+        {% if lists %}
+            {% for clist in lists %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center">
+                    {% if clist.image %}
+                        <img src="{{ url_for('static', filename=clist.image) }}" class="card-img-top" alt="Imagen de la lista {{ clist.name }}" style="max-height: 200px; object-fit: contain; margin-top: 10px;">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='uploads/list_images/default.png') }}" class="card-img-top" alt="Imagen por defecto" style="max-height: 200px; object-fit: contain; margin-top: 10px;">
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ clist.name }}</h5>
+                        <p class="card-text flex-grow-1">Presiona el botón para votar por esta lista.</p>
+                        
+                        <form action="{{ url_for('voting.cast_vote', period_id=period.id, list_id=clist.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres votar por la lista \'{{ clist.name }}\'? Esta acción no se puede deshacer.');">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-vote-yea"></i> Votar por {{ clist.name }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-warning" role="alert">
+                    No hay listas de candidatos registradas para este proceso electoral todavía.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Volver a la lista de elecciones</a>
+    </div>
+</div>
+{% endblock %}

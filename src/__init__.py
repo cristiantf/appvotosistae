@@ -1,3 +1,5 @@
+
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -6,6 +8,8 @@ from config import Config
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+# The login view is now in the 'auth' blueprint
+login_manager.login_view = 'auth.login'
 migrate = Migrate()
 
 def create_app(config_class=Config):
@@ -15,21 +19,24 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
-    login_manager.login_view = 'auth.login'
 
-    with app.app_context():
-        from src import models # Import models here
+    # Register blueprints
+    from src.main import bp as main_bp
+    app.register_blueprint(main_bp)
 
-        from src.auth import bp as auth_blueprint
-        app.register_blueprint(auth_blueprint, url_prefix='/auth')
+    from src.auth import bp as auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
 
-        from src.main import bp as main_blueprint
-        app.register_blueprint(main_blueprint)
+    from src.admin import bp as admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/admin')
 
-        from src.admin import bp as admin_blueprint
-        app.register_blueprint(admin_blueprint, url_prefix='/admin')
+    from src.voting import bp as voting_bp
+    app.register_blueprint(voting_bp, url_prefix='/voting')
 
-        from src.voto import bp as voto_blueprint
-        app.register_blueprint(voto_blueprint, url_prefix='/vote')
+    # Import and register CLI commands
+    from src import commands
+    app.cli.add_command(commands.clean_orphans)
 
     return app
+
+from src import models

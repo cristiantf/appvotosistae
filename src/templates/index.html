@@ -1,5 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Welcome to the Voting App</h1>
+<div class="container mt-5">
+    <div class="jumbotron text-center bg-light p-5 rounded">
+        <h1 class="display-4">Bienvenido al Sistema de Votación</h1>
+        <p class="lead">Su participación es fundamental para el futuro de nuestra organización.</p>
+        <hr class="my-4">
+        <p>A continuación, encontrará las elecciones que se encuentran actualmente activas. Por favor, seleccione una para emitir su voto.</p>
+    </div>
+
+    <h2 class="text-center my-4">Elecciones Activas</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        {% if elections %}
+            {% for period in elections %}
+            <div class="col-md-4 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ period.name }}</h5>
+                        <p class="card-text">Este proceso electoral está abierto.</p>
+                        <a href="{{ url_for('voting.show_lists', period_id=period.id) }}" class="btn btn-primary">
+                            <i class="fas fa-vote-yea"></i> Ir a Votar
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col">
+                <div class="alert alert-info text-center" role="alert">
+                    <h4 class="alert-heading">No hay elecciones activas</h4>
+                    <p>En este momento, no hay ningún proceso electoral en curso. Por favor, vuelva más tarde o póngase en contacto con un administrador si cree que esto es un error.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

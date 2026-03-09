@@ -1,45 +1,67 @@
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for, request
 from flask_login import login_user, logout_user, current_user
-from src import db
+
 from src.auth import bp
-from src.auth.forms import LoginForm, CreateAdminForm
-from src.models import User
-
-@bp.route('/create_admin', methods=['GET', 'POST'])
-def create_admin():
-    if User.query.filter_by(is_admin=True).first():
-        flash('An admin user already exists.')
-        return redirect(url_for('main.index'))
-
-    form = CreateAdminForm()
-    if form.validate_on_submit():
-        user = User(username=form.username.data, is_admin=True)
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Admin user created successfully.')
-        return redirect(url_for('admin.index'))
-    return render_template('create_admin.html', title='Create Admin', form=form)
+from src.auth.forms import LoginForm, RegistrationForm
+from src.models import User, Voter
+from src import db
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         if current_user.is_admin:
-            return redirect(url_for('admin.index'))
+            return redirect(url_for('admin.admin_dashboard'))
         return redirect(url_for('main.index'))
+
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
-            flash('Invalid username or password', 'danger')
-            return render_template('login.html', title='Sign In', form=form)
-        login_user(user)
-        if user.is_admin:
-            return redirect(url_for('admin.index'))
-        return redirect(url_for('main.index'))
-    return render_template('login.html', title='Sign In', form=form)
+            flash('Usuario o contraseña inválidos', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        
+        next_page = request.args.get('next')
+        if not next_page or not next_page.startswith('/'):
+            if user.is_admin:
+                # Corrected redirect for admin users
+                next_page = url_for('admin.admin_dashboard')
+            else:
+                next_page = url_for('main.index')
+        return redirect(next_page)
+        
+    return render_template('auth/login.html', title='Sign In', form=form)
 
 @bp.route('/logout')
 def logout():
     logout_user()
+    flash('Has cerrado sesión exitosamente.', 'info')
     return redirect(url_for('main.index'))
+
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # Check if voter exists and is not already linked
+        voter = Voter.query.filter_by(cedula=form.cedula.data).first()
+        if not voter:
+            flash('Cédula no encontrada en el padrón electoral.', 'danger')
+            return render_template('auth/register.html', title='Register', form=form)
+
+        existing_user = User.query.filter_by(voter_id=voter.id).first()
+        if existing_user:
+            flash('Este votante ya tiene una cuenta de usuario asociada.', 'warning')
+            return redirect(url_for('auth.login'))
+
+        user = User(username=form.username.data, voter_id=voter.id)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('¡Felicidades, ahora eres un usuario registrado!', 'success')
+        return redirect(url_for('auth.login'))
+        
+    return render_template('auth/register.html', title='Register', form=form)

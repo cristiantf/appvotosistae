@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Resultados: {{ period.name }}</h2>
+    <hr>
+
+    <div class="row">
+        <!-- Gráfico de Resultados -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    Gráfico de Votos
+                </div>
+                <div class="card-body">
+                    <canvas id="resultsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Tabla de Resultados -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    Desglose de Votos
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Lista</th>
+                                <th>Votos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(chart_labels|length) %}
+                            <tr>
+                                <td>{{ chart_labels[i] }}</td>
+                                <td>{{ chart_data[i] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Periodos Electorales
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('resultsChart').getContext('2d');
+    const resultsChart = new Chart(ctx, {
+        type: 'bar', // Tipo de gráfico
+        data: {
+            labels: {{ chart_labels|tojson }},
+            datasets: [{
+                label: 'Número de Votos',
+                data: {{ chart_data|tojson }},
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                    'rgba(153, 102, 255, 0.6)',
+                    'rgba(255, 159, 64, 0.6)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        // Asegurar que solo se muestren enteros en el eje Y
+                        stepSize: 1
+                    }
+                }
+            },
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false // Opcional: ocultar la leyenda si solo hay un dataset
+                },
+                title: {
+                    display: true,
+                    text: 'Conteo de Votos por Lista'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

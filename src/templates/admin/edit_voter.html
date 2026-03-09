@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
     <h2>Editar Votante</h2>
-    <form action="{{ url_for('admin.edit_voter', voter_id=voter.id, period_id=period_id) }}" method="post" novalidate>
+    <form action="{{ url_for('admin.edit_voter', voter_id=voter.id, from_period=from_period) }}" method="post" novalidate>
         {{ form.hidden_tag() }}
         <div class="mb-3">
             {{ form.name.label(class="form-label") }}<br>
@@ -19,6 +19,10 @@
         </div>
         <p>{{ form.submit(class="btn btn-primary") }}</p>
     </form>
-    <a href="{{ url_for('admin.manage_period_details', period_id=period_id) }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+    {% if from_period %}
+        <a href="{{ url_for('admin.manage_election_period', period_id=from_period) }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+    {% else %}
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+    {% endif %}
 </div>
 {% endblock %}

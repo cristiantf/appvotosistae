@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Editar Lista de Candidatos</h2>
+    <hr>
+
+    <div class="card my-4">
+        <div class="card-body">
+            <form action="{{ url_for('admin.edit_list', list_id=candidate_list.id) }}" method="post" enctype="multipart/form-data" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}<br>
+                    {{ form.name(class="form-control", size=32) }}
+                </div>
+
+                {% if candidate_list.image %}
+                    <div class="mb-3">
+                        <label class="form-label">Imagen Actual</label><br>
+                        <img src="{{ url_for('static', filename=candidate_list.image) }}" alt="Imagen de la lista" class="img-thumbnail" style="max-width: 150px;">
+                    </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    {{ form.image.label(class="form-label") }} (Opcional: Subir nueva imagen para reemplazar la actual)<br>
+                    {{ form.image(class="form-control") }}
+                </div>
+
+                <p>
+                    {{ form.submit(class="btn btn-primary") }}
+                    <a href="{{ url_for('admin.manage_election_period', period_id=candidate_list.election_period_id) }}" class="btn btn-secondary">Cancelar</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

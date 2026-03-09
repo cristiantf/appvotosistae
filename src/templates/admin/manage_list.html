@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex align-items-center mb-4">
+        {% if candidate_list.image %}
+            <img src="{{ url_for('static', filename=candidate_list.image) }}" alt="Imagen de la lista" class="img-thumbnail me-3" style="width: 80px; height: 80px; object-fit: cover;">
+        {% endif %}
+        <h1 class="h3 mb-0">Gestionar Candidatos para la Lista: <strong>{{ candidate_list.name }}</strong></h1>
+    </div>
+
+    <div class="row">
+        <!-- Columna Izquierda: Añadir Nuevo Candidato -->
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">Añadir Nuevo Candidato</div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.add_candidate', list_id=candidate_list.id) }}" method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.voter.label(class="form-label") }}
+                            {{ form.voter(class="form-control", id="voter-select") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.dignity.label(class="form-label") }}
+                            {{ form.dignity(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.image.label(class="form-label") }} (Opcional)
+                            {{ form.image(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Añadir Candidato</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Candidatos Existentes -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">Candidatos Existentes</div>
+                {% if candidate_list.candidates %}
+                <ul class="list-group list-group-flush">
+                    {% for candidate in candidate_list.candidates %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            {% if candidate.image %}
+                                <img src="{{ url_for('static', filename=candidate.image) }}" alt="Foto del candidato" class="img-thumbnail me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                <div class="me-3" style="width: 60px; height: 60px; background-color: #eee; border-radius: 50%;"></div>
+                            {% endif %}
+                            <div>
+                                <p class="mb-0"><strong>{{ candidate.name }}</strong></p>
+                                <p class="mb-0 text-muted">Dignidad: {{ candidate.dignity }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-secondary">Editar</a>
+                            <form action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" method="post" class="d-inline ms-1">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este candidato?')">Eliminar</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="card-body">
+                    <p class="text-center">No se encontraron candidatos para esta lista.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="mt-4">
+        <a href="{{ url_for('admin.manage_election_period', period_id=candidate_list.election_period_id) }}" class="btn btn-secondary">Volver a las Listas de Candidatos</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#voter-select').select2({
+            placeholder: "Escribe para buscar un votante...",
+            allowClear: true
+        });
+    });
+</script>
+{% endblock %}

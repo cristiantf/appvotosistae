@@ -1,0 +1,45 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>User Management</h1>
+    <p>Here you can view all registered users and manage their administrator permissions.</p>
+    <hr>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Is Admin?</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>
+                    {% if user.is_admin %}
+                        <span class="badge bg-success">Yes</span>
+                    {% else %}
+                        <span class="badge bg-secondary">No</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="{{ url_for('admin.toggle_admin', user_id=user.id) }}" method="POST" class="d-inline">
+                        {% if user.is_admin %}
+                            <button type="submit" class="btn btn-warning btn-sm">Remove Admin</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-success btn-sm">Make Admin</button>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+</div>
+{% endblock %}
