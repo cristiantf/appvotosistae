@@ -17,11 +17,14 @@ def load_voters_from_excel(filepath, period_id):
     if not election_period:
         raise ValueError(f"Election period with id {period_id} not found.")
 
+    df['cedula'] = df['cedula'].astype(str).str.strip()
+    existing_voters = Voter.query.filter(Voter.cedula.in_(df['cedula'].tolist())).all()
+    existing_voters_dict = {v.cedula: v for v in existing_voters}
+
     for index, row in df.iterrows():
-        cedula = str(row['cedula'])
+        cedula = row['cedula']
+        voter = existing_voters_dict.get(cedula)
         
-        # Find existing voter or create a new one
-        voter = Voter.query.filter_by(cedula=cedula).first()
         if not voter:
             voter = Voter(
                 cedula=cedula,
@@ -29,11 +32,10 @@ def load_voters_from_excel(filepath, period_id):
                 lastname=row['lastname']
             )
             db.session.add(voter)
-            # Commit is not strictly necessary here, as the relationship
-            # is managed by SQLAlchemy, but can be useful for very large imports.
+            existing_voters_dict[cedula] = voter
 
-        # Add the voter to the election period if not already present
         if voter not in election_period.voters:
             election_period.voters.append(voter)
 
     db.session.commit()
+

@@ -3,7 +3,7 @@ from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
 from src.voting import bp
 from src import db
-from src.models import ElectionPeriod, CandidateList, Vote, Voter
+from src.models import ElectionPeriod, CandidateList, Vote, Voter, VoterParticipation
 
 @bp.route('/<int:period_id>/lists', methods=['GET'])
 @login_required
@@ -14,12 +14,12 @@ def show_lists(period_id):
         return redirect(url_for('main.index'))
 
     # Check if the current user (as a voter) has already voted in this period
-    existing_vote = Vote.query.filter_by(
+    existing_participation = VoterParticipation.query.filter_by(
         voter_id=current_user.voter_id, 
         election_period_id=period.id
     ).first()
 
-    if existing_vote:
+    if existing_participation:
         flash('Ya has emitido tu voto en este proceso electoral.', 'info')
         return redirect(url_for('main.index'))
 
@@ -41,21 +41,25 @@ def cast_vote(period_id, list_id):
         abort(404) # Or a more user-friendly error
 
     # Double-check if a vote has been cast
-    existing_vote = Vote.query.filter_by(
+    existing_participation = VoterParticipation.query.filter_by(
         voter_id=current_user.voter_id, 
         election_period_id=period.id
     ).first()
     
-    if existing_vote:
+    if existing_participation:
         flash('Ya has votado en esta elección. No se permiten votos múltiples.', 'warning')
         return redirect(url_for('main.index'))
 
     try:
-        new_vote = Vote(
+        new_participation = VoterParticipation(
             voter_id=current_user.voter_id,
+            election_period_id=period.id
+        )
+        new_vote = Vote(
             election_period_id=period.id,
             candidate_list_id=list_id
         )
+        db.session.add(new_participation)
         db.session.add(new_vote)
         db.session.commit()
         flash('¡Tu voto ha sido registrado exitosamente!', 'success')

@@ -10,7 +10,7 @@ from src.admin.forms import (
     FileUploadForm, ElectionPeriodForm, CandidateListForm,
     AddCandidateForm, EditCandidateForm, VoterForm
 )
-from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote
+from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote, AuditLog
 from src.utils import load_voters_from_excel
 from werkzeug.utils import secure_filename
 from src.decorators import admin_required
@@ -69,8 +69,17 @@ def add_election_period():
     if form.validate_on_submit():
         new_period = ElectionPeriod(name=form.name.data)
         db.session.add(new_period)
+        db.session.flush()
+        
+        blanco = CandidateList(name="Voto en Blanco", election_period_id=new_period.id)
+        nulo = CandidateList(name="Voto Nulo", election_period_id=new_period.id)
+        db.session.add(blanco)
+        db.session.add(nulo)
+        
+        audit = AuditLog(user_id=current_user.id, action=f"Creado periodo electoral: {new_period.name}")
+        db.session.add(audit)
         db.session.commit()
-        flash('¡Nuevo periodo electoral creado!', 'success')
+        flash('¡Nuevo periodo electoral creado con Voto Blanco y Nulo automáticos!', 'success')
         return redirect(url_for('admin.list_election_periods'))
     return render_template('admin/add_election_period.html', form=form)
 

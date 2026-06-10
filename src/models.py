@@ -2,6 +2,7 @@
 from src import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 voter_period_association = db.Table('voter_period_association',
     db.Column('voter_id', db.Integer, db.ForeignKey('voter.id')),
@@ -31,16 +32,19 @@ class Voter(db.Model):
     cedula = db.Column(db.String(20), unique=True, nullable=False)
     name = db.Column(db.String(128))
     lastname = db.Column(db.String(128))
-    votes = db.relationship('Vote', backref='voter', lazy='dynamic', cascade="all, delete-orphan")
+    participations = db.relationship('VoterParticipation', backref='voter', lazy='dynamic', cascade="all, delete-orphan")
     candidate_info = db.relationship('Candidate', backref='voter_info', uselist=False)
 
 class ElectionPeriod(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    start_date = db.Column(db.DateTime, nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
     voters = db.relationship('Voter', secondary=voter_period_association, backref='election_periods')
     lists = db.relationship('CandidateList', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
     votes = db.relationship('Vote', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
+    participations = db.relationship('VoterParticipation', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
 
 class CandidateList(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,8 +62,22 @@ class Candidate(db.Model):
     candidate_list_id = db.Column(db.Integer, db.ForeignKey('candidate_list.id'), nullable=False)
     voter_id = db.Column(db.Integer, db.ForeignKey('voter.id'), nullable=False)
 
-class Vote(db.Model):
+class VoterParticipation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     voter_id = db.Column(db.Integer, db.ForeignKey('voter.id'), nullable=False)
     election_period_id = db.Column(db.Integer, db.ForeignKey('election_period.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Vote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    election_period_id = db.Column(db.Integer, db.ForeignKey('election_period.id'), nullable=False)
     candidate_list_id = db.Column(db.Integer, db.ForeignKey('candidate_list.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(256), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    details = db.Column(db.Text, nullable=True)
+    user = db.relationship('User', backref=db.backref('audit_logs', lazy=True))
