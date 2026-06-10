@@ -46,6 +46,12 @@ class ElectionPeriod(db.Model):
     lists = db.relationship('CandidateList', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
     votes = db.relationship('Vote', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
     participations = db.relationship('VoterParticipation', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
+    dignities = db.relationship('Dignity', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
+
+class Dignity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    election_period_id = db.Column(db.Integer, db.ForeignKey('election_period.id'), nullable=False)
 
 class CandidateList(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,7 +64,8 @@ class CandidateList(db.Model):
 class Candidate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
-    dignity = db.Column(db.String(128))
+    dignity_id = db.Column(db.Integer, db.ForeignKey('dignity.id'), nullable=True)
+    dignity = db.relationship('Dignity')
     image = db.Column(db.String(256), nullable=True)
     candidate_list_id = db.Column(db.Integer, db.ForeignKey('candidate_list.id'), nullable=False)
     voter_id = db.Column(db.Integer, db.ForeignKey('voter.id'), nullable=False)

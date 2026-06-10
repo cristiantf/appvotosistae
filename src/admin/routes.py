@@ -8,9 +8,9 @@ from src import db
 from src.admin import bp
 from src.admin.forms import (
     FileUploadForm, ElectionPeriodForm, CandidateListForm,
-    AddCandidateForm, EditCandidateForm, VoterForm
+    AddCandidateForm, EditCandidateForm, VoterForm, DignityForm
 )
-from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote, AuditLog
+from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote, AuditLog, Dignity
 from src.utils import load_voters_from_excel
 from werkzeug.utils import secure_filename
 from src.decorators import admin_required, superadmin_required
@@ -91,6 +91,7 @@ def manage_election_period(period_id):
     period = ElectionPeriod.query.get_or_404(period_id)
     list_form = CandidateListForm()
     voter_form = FileUploadForm()
+    dignity_form = DignityForm()
 
     search_query = request.args.get('search', '').strip()
     all_voters = period.voters
@@ -104,11 +105,40 @@ def manage_election_period(period_id):
     else:
         voters_to_display = all_voters
 
+    dignities = period.dignities.all()
+
     return render_template('admin/manage_election_period.html', 
                            period=period, 
                            list_form=list_form, 
                            voter_form=voter_form,
-                           voters=voters_to_display)
+                           dignity_form=dignity_form,
+                           voters=voters_to_display,
+                           dignities=dignities)
+
+@bp.route('/election_periods/<int:period_id>/dignities/add', methods=['POST'])
+@login_required
+@admin_required
+def add_dignity(period_id):
+    form = DignityForm()
+    if form.validate_on_submit():
+        new_dignity = Dignity(name=form.name.data, election_period_id=period_id)
+        db.session.add(new_dignity)
+        db.session.commit()
+        flash('Nueva dignidad añadida.', 'success')
+    else:
+        flash('Error al añadir dignidad.', 'danger')
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
+
+@bp.route('/dignities/<int:dignity_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_dignity(dignity_id):
+    dignity = Dignity.query.get_or_404(dignity_id)
+    period_id = dignity.election_period_id
+    db.session.delete(dignity)
+    db.session.commit()
+    flash('Dignidad eliminada.', 'success')
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
 
 @bp.route('/voters/<int:voter_id>/period/<int:period_id>/delete', methods=['POST'])
 @login_required
@@ -242,6 +272,9 @@ def manage_list(list_id):
         (v.id, f'{v.name} {v.lastname} ({v.cedula})') for v in period_voters if v.id not in assigned_voter_ids
     ]
     
+    period_dignities = candidate_list.election_period.dignities.all()
+    form.dignity.choices = [(d.id, d.name) for d in period_dignities]
+    
     return render_template('admin/manage_list.html', candidate_list=candidate_list, form=form)
 
 @bp.route('/lists/<int:list_id>/candidates/add', methods=['POST'])
@@ -254,12 +287,15 @@ def add_candidate(list_id):
     candidates_in_period = Candidate.query.join(CandidateList).filter(CandidateList.election_period_id == candidate_list.election_period_id).all()
     assigned_voter_ids = {c.voter_id for c in candidates_in_period}
     form.voter.choices = [(v.id, f'{v.name} {v.lastname} ({v.cedula})') for v in period_voters if v.id not in assigned_voter_ids]
+    
+    period_dignities = candidate_list.election_period.dignities.all()
+    form.dignity.choices = [(d.id, d.name) for d in period_dignities]
 
     if form.validate_on_submit():
         voter = Voter.query.get(form.voter.data)
         new_candidate = Candidate(
             name=f'{voter.name} {voter.lastname}',
-            dignity=form.dignity.data, 
+            dignity_id=form.dignity.data, 
             candidate_list_id=list_id,
             voter_id=voter.id
         )
@@ -280,14 +316,22 @@ def add_candidate(list_id):
 def edit_candidate(candidate_id):
     candidate = Candidate.query.get_or_404(candidate_id)
     form = EditCandidateForm(obj=candidate)
+    
+    period_dignities = candidate.candidate_list.election_period.dignities.all()
+    form.dignity.choices = [(d.id, d.name) for d in period_dignities]
+
     if form.validate_on_submit():
-        candidate.dignity = form.dignity.data
+        candidate.dignity_id = form.dignity.data
         if form.image.data:
             picture_file = save_picture(form.image.data, subfolder='candidate_pics')
             candidate.image = picture_file
         db.session.commit()
         flash('El candidato ha sido actualizado.', 'success')
         return redirect(url_for('admin.manage_list', list_id=candidate.candidate_list_id))
+    
+    if request.method == 'GET':
+        form.dignity.data = candidate.dignity_id
+
     return render_template('admin/edit_candidate.html', form=form, candidate=candidate)
 
 

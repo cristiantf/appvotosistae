@@ -51,7 +51,7 @@
                             {% endif %}
                             <div>
                                 <p class="mb-0"><strong>{{ candidate.name }}</strong></p>
-                                <p class="mb-0 text-muted">Dignidad: {{ candidate.dignity }}</p>
+                                <p class="mb-0 text-muted">Dignidad: {{ candidate.dignity.name if candidate.dignity else 'Sin Asignar' }}</p>
                             </div>
                         </div>
                         <div>

@@ -25,7 +25,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header">Listas Existentes</div>
                 <ul class="list-group list-group-flush">
                     {% for list in period.lists %}
@@ -47,6 +47,33 @@
                     <li class="list-group-item">No hay listas en este periodo.</li>
                     {% endfor %}
                 </ul>
+            </div>
+
+            <!-- Gestión de Dignidades -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">Gestionar Dignidades (Cargos)</div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.add_dignity', period_id=period.id) }}" method="post">
+                        {{ dignity_form.hidden_tag() }}
+                        <div class="input-group mb-3">
+                            {{ dignity_form.name(class="form-control", placeholder="Ej: Presidente") }}
+                            <button class="btn btn-primary" type="submit">Añadir</button>
+                        </div>
+                    </form>
+                    
+                    <ul class="list-group list-group-flush mt-3">
+                        {% for dig in dignities %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ dig.name }}
+                            <form action="{{ url_for('admin.delete_dignity', dignity_id=dig.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar esta dignidad?')"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted text-center">No hay dignidades creadas. Añade una arriba.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
         </div>
 

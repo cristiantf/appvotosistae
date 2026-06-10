@@ -18,8 +18,12 @@ class CandidateListForm(FlaskForm):
     image = FileField('List Image', validators=[Optional(), FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
     submit = SubmitField('Create List')
 
+class DignityForm(FlaskForm):
+    name = StringField('Dignity Name', validators=[DataRequired()])
+    submit = SubmitField('Save Dignity')
+
 class AddCandidateForm(FlaskForm):
-    dignity = StringField('Dignity', validators=[DataRequired()])
+    dignity = SelectField('Dignity', coerce=int, validators=[DataRequired()])
     voter = SelectField('Voter', coerce=int, validators=[DataRequired()])
     image = FileField('Candidate Image', validators=[Optional(), FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
     submit = SubmitField('Add Candidate')
@@ -27,11 +31,16 @@ class AddCandidateForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(AddCandidateForm, self).__init__(*args, **kwargs)
         self.voter.choices = []
+        self.dignity.choices = []
 
 class EditCandidateForm(FlaskForm):
-    dignity = StringField('Dignity', validators=[DataRequired()])
+    dignity = SelectField('Dignity', coerce=int, validators=[DataRequired()])
     image = FileField('New Candidate Image', validators=[Optional(), FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
     submit = SubmitField('Update Candidate')
+    
+    def __init__(self, *args, **kwargs):
+        super(EditCandidateForm, self).__init__(*args, **kwargs)
+        self.dignity.choices = []
 
 class VoterForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])

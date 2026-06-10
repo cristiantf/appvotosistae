@@ -74,6 +74,12 @@ A partir de la revisión del código y la investigación sobre la normativa de e
 - **Impersonación (Login As):** El superadmin puede iniciar sesión directamente en la cuenta de cualquier otro usuario para soporte técnico y pruebas.
 - **Correcciones Windows:** Se modificó la función de subida de imágenes (`save_picture`) para usar barras diagonales simples (`/`) en lugar del `os.path.join` de Windows, asegurando que las imágenes de candidatos y listas carguen correctamente en el navegador.
 
+### Sprint 3: Gestión Dinámica de Dignidades y Papeleta Electoral (Completado)
+- **Modelos:** Se creó el modelo `Dignity` y se modificó `Candidate` para referenciarlo mediante `dignity_id`.
+- **Panel de Administración:** Se implementó una interfaz en la gestión de cada Periodo Electoral para crear y eliminar dignidades específicas de ese periodo.
+- **Formularios Dinámicos:** Al crear o editar un candidato, el campo de dignidad es ahora un desplegable (`SelectField`) que se carga automáticamente con las dignidades configuradas para ese periodo, evitando errores de tipeo.
+- **Visualización Pública:** La papeleta electoral (`show_lists.html`) fue actualizada para mostrar de forma compacta (mini-avatares, nombre y dignidad) a todos los candidatos que conforman cada lista.
+
 ## 5. Próximos Pasos Inmediatos
-1. Continuar con el **Plan de Desarrollo** abordando las fechas automáticas de elección.
-2. Refinar la gestión de dignidades predefinidas.
+1. Refinar las fechas automáticas de elección.
+2. Validaciones documentales y reportes PDF de resultados.
