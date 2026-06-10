@@ -1,31 +1,37 @@
-
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1>Admin Dashboard</h1>
-    <p>Welcome, {{ current_user.username }}!</p>
+<div class="container mt-4 animate-slide-up">
+    <div class="text-center mb-5">
+        <h1 class="font-weight-bold text-primary display-4">Panel de Administración</h1>
+        <p class="lead text-muted mt-2">Bienvenido, {{ current_user.username }}!</p>
+    </div>
     <hr>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Manage Elections</h5>
-                    <p class="card-text">Create, view, and manage election periods.</p>
-                    <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-primary">Go to Elections</a>
+    <div class="row justify-content-center">
+        <div class="col-md-5 mb-4">
+            <div class="card card-premium h-100 text-center">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                    <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
+                    <h4 class="card-title font-weight-bold">Gestión de Elecciones</h4>
+                    <p class="card-text text-muted mb-4">Crea, visualiza y administra periodos electorales, listas y candidatos.</p>
+                    <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-premium w-100 mt-auto">Ir a Elecciones</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Manage Users</h5>
-                    <p class="card-text">View users and manage their administrator status.</p>
-                    <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">Go to Users</a>
+        
+        {% if current_user.is_superadmin %}
+        <div class="col-md-5 mb-4">
+            <div class="card card-premium h-100 text-center">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                    <i class="fas fa-users-cog fa-3x text-secondary mb-3"></i>
+                    <h4 class="card-title font-weight-bold">Gestión de Usuarios</h4>
+                    <p class="card-text text-muted mb-4">Visualiza usuarios, cambia permisos de administrador o inicia sesión como otros usuarios.</p>
+                    <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary-premium w-100 mt-auto">Ir a Usuarios</a>
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

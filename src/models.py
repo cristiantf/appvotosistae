@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     is_admin = db.Column(db.Boolean, default=False)
+    is_superadmin = db.Column(db.Boolean, default=False)
     password_hash = db.Column(db.String(256))
     voter_id = db.Column(db.Integer, db.ForeignKey('voter.id'))
     voter = db.relationship('Voter', backref='user', uselist=False)
@@ -80,4 +81,4 @@ class AuditLog(db.Model):
     action = db.Column(db.String(256), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     details = db.Column(db.Text, nullable=True)
-    user = db.relationship('User', backref=db.backref('audit_logs', lazy=True))
+    user = db.relationship('User', backref=db.backref('audit_logs', lazy=True, cascade="all, delete-orphan"))

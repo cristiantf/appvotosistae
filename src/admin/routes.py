@@ -13,7 +13,8 @@ from src.admin.forms import (
 from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote, AuditLog
 from src.utils import load_voters_from_excel
 from werkzeug.utils import secure_filename
-from src.decorators import admin_required
+from src.decorators import admin_required, superadmin_required
+from flask_login import login_user
 
 def save_picture(form_picture, subfolder='profile_pics'):
     random_hex = secrets.token_hex(8)
@@ -27,7 +28,7 @@ def save_picture(form_picture, subfolder='profile_pics'):
 
     form_picture.save(picture_path)
 
-    return os.path.join('uploads', subfolder, picture_fn)
+    return f"uploads/{subfolder}/{picture_fn}"
 
 @bp.route('/')
 @login_required
@@ -324,20 +325,38 @@ def edit_voter(voter_id):
 
 @bp.route('/users')
 @login_required
-@admin_required
+@superadmin_required
 def list_users():
     users = User.query.all()
     return render_template('admin/list_users.html', users=users)
 
 @bp.route('/users/<int:user_id>/toggle_admin', methods=['POST'])
 @login_required
-@admin_required
+@superadmin_required
 def toggle_admin(user_id):
     user = User.query.get_or_404(user_id)
     if user == current_user:
         flash('No puedes cambiar tu propio estado de administrador.', 'danger')
+    elif user.is_superadmin:
+        flash('No se pueden modificar los permisos de otro super administrador.', 'danger')
     else:
         user.is_admin = not user.is_admin
         db.session.commit()
         flash(f'{user.username} es ahora {"un administrador" if user.is_admin else "un usuario normal"}.', 'success')
     return redirect(url_for('admin.list_users'))
+
+@bp.route('/superadmin/login_as/<int:user_id>', methods=['POST'])
+@login_required
+@superadmin_required
+def login_as(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.is_superadmin and user.id != current_user.id:
+        flash('No puedes impersonar a otro super administrador.', 'danger')
+        return redirect(url_for('admin.list_users'))
+    
+    login_user(user)
+    flash(f'Sesión iniciada como {user.username}.', 'success')
+    
+    if user.is_admin:
+        return redirect(url_for('admin.admin_dashboard'))
+    return redirect(url_for('main.index'))

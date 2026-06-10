@@ -61,6 +61,19 @@ A partir de la revisión del código y la investigación sobre la normativa de e
 - ⚠️ `config.py` tiene la `SECRET_KEY` quemada en el código como fallback.
 - ⚠️ La base de datos de producción está expuesta en `.env` en el repositorio local. Debe rotarse y asegurarse.
 
-## 4. Próximos Pasos Inmediatos
-1. Desarrollar e implementar el **Plan de Desarrollo** (Sprint 1) priorizando seguridad del voto, UI/UX y la inclusión de voto nulo/blanco.
-2. Generar documentación técnica detallada de la arquitectura.
+## 4. Historial de Sprints
+
+### Sprint 1: Anonimato, Cumplimiento Legal y Rediseño Base (Completado)
+- **Base de Datos:** Migración a MySQL local. Separación de votos e identidades creando la tabla `VoterParticipation` y haciendo anónima la tabla `Vote`.
+- **Funcionalidad:** Opciones automáticas de Voto en Blanco y Nulo. Carga masiva de padrones electorales (Bulk Query) optimizada.
+- **UI/UX:** Rediseño completo con "CSS Vainilla Premium". Tarjetas interactivas, efecto glassmorphism en el login, y papeleta electoral moderna.
+
+### Sprint 2: Panel Superadmin y Correcciones Específicas (Completado)
+- **Roles Avanzados:** Se introdujo el campo `is_superadmin` en el modelo de usuario.
+- **Seguridad:** Creación del decorador `@superadmin_required`. El panel de gestión de usuarios está ahora restringido y solo los superadmins pueden visualizar usuarios o cambiar los permisos de administrador de otros.
+- **Impersonación (Login As):** El superadmin puede iniciar sesión directamente en la cuenta de cualquier otro usuario para soporte técnico y pruebas.
+- **Correcciones Windows:** Se modificó la función de subida de imágenes (`save_picture`) para usar barras diagonales simples (`/`) en lugar del `os.path.join` de Windows, asegurando que las imágenes de candidatos y listas carguen correctamente en el navegador.
+
+## 5. Próximos Pasos Inmediatos
+1. Continuar con el **Plan de Desarrollo** abordando las fechas automáticas de elección.
+2. Refinar la gestión de dignidades predefinidas.

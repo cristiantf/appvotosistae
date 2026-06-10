@@ -65,6 +65,12 @@ Reconstrucción completa de las plantillas utilizando principios de diseño mode
 #### [MODIFY] `src/utils.py`
 - Optimizar la función `load_voters_from_excel` utilizando inserciones masivas de SQLAlchemy (bulk inserts o execute_values) en lugar de bucles fila por fila, previniendo cuellos de botella con padrones grandes (ej. +5000 estudiantes).
 
+### 5. Sprint 2: Panel de Superadmin y Corrección de Imágenes (Completado)
+- **Roles Avanzados:** Implementación del flag `is_superadmin` en el modelo de usuario.
+- **Seguridad:** Inserción del decorador `@superadmin_required` para proteger la gestión de roles.
+- **Impersonación:** Creación de ruta `login_as` para permitir a superadmins acceder como cualquier usuario.
+- **Correcciones Windows:** Sustitución de `os.path.join` por strings `/` para renderizar imágenes correctamente en todas las plataformas.
+
 ## Verification Plan
 
 ### Automated Tests
