@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_superadmin = db.Column(db.Boolean, default=False)
     password_hash = db.Column(db.String(256))
+    profile_picture = db.Column(db.String(256), nullable=True, default='uploads/profile_pics/default_avatar.png')
     voter_id = db.Column(db.Integer, db.ForeignKey('voter.id'))
     voter = db.relationship('Voter', backref='user', uselist=False)
 

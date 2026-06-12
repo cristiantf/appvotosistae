@@ -16,24 +16,10 @@ from src.admin.forms import (
     CreateUserForm
 )
 from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote, AuditLog, Dignity
-from src.utils import load_voters_from_excel
+from src.utils import load_voters_from_excel, save_picture
 from werkzeug.utils import secure_filename
 from src.decorators import admin_required, superadmin_required
 from flask_login import login_user
-
-def save_picture(form_picture, subfolder='profile_pics'):
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(form_picture.filename)
-    picture_fn = random_hex + f_ext
-    picture_path = os.path.join('src/static/uploads', subfolder, picture_fn)
-
-    output_dir = os.path.dirname(picture_path)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    form_picture.save(picture_path)
-
-    return f"uploads/{subfolder}/{picture_fn}"
 
 def log_admin_action(action, details=None):
     if current_user.is_authenticated:

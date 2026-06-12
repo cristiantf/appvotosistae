@@ -35,3 +35,18 @@ class CreateAdminForm(FlaskForm):
     password = PasswordField('Contraseña', validators=[DataRequired()])
     confirm_password = PasswordField('Confirmar Contraseña', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Crear Administrador')
+
+from flask_wtf.file import FileField, FileAllowed
+from wtforms.validators import Optional
+
+class UserProfileForm(FlaskForm):
+    current_password = PasswordField('Contraseña Actual', validators=[DataRequired()])
+    new_password = PasswordField('Nueva Contraseña', validators=[Optional()])
+    confirm_new_password = PasswordField(
+        'Confirmar Nueva Contraseña', validators=[EqualTo('new_password', message='Las contraseñas deben coincidir.')]
+    )
+    profile_picture = FileField('Foto de Perfil', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'png', 'jpeg'], 'Solo se permiten imágenes (JPG, PNG).')
+    ])
+    submit = SubmitField('Actualizar Perfil')

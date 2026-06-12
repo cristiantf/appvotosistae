@@ -60,3 +60,30 @@ def period_results(period_id):
         return redirect(url_for('main.results'))
 
     return render_template('main/period_results.html', period=period, lists_results=results, total_votes=total_votes)
+
+from flask_login import login_required, current_user
+from src import db
+from src.auth.forms import UserProfileForm
+from src.utils import save_picture
+
+@bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    form = UserProfileForm()
+    if form.validate_on_submit():
+        if not current_user.check_password(form.current_password.data):
+            flash('La contraseña actual es incorrecta.', 'danger')
+            return redirect(url_for('main.profile'))
+            
+        if form.new_password.data:
+            current_user.set_password(form.new_password.data)
+            
+        if form.profile_picture.data:
+            picture_file = save_picture(form.profile_picture.data, subfolder='profile_pics')
+            current_user.profile_picture = picture_file
+            
+        db.session.commit()
+        flash('Tu perfil ha sido actualizado con éxito.', 'success')
+        return redirect(url_for('main.profile'))
+        
+    return render_template('main/profile.html', form=form)

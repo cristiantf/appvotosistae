@@ -1,8 +1,24 @@
+import os
+import secrets
 import pandas as pd
 from werkzeug.security import generate_password_hash
 from sqlalchemy import insert, select
 from src import db
 from src.models import Voter, ElectionPeriod, User, voter_period_association
+
+def save_picture(form_picture, subfolder='profile_pics'):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join('src/static/uploads', subfolder, picture_fn)
+
+    output_dir = os.path.dirname(picture_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    form_picture.save(picture_path)
+
+    return f"uploads/{subfolder}/{picture_fn}"
 
 def load_voters_from_excel(filepath, period_id):
     try:
