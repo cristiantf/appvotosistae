@@ -9,8 +9,8 @@ from src.models import ElectionPeriod, CandidateList, Vote, Voter, VoterParticip
 @login_required
 def show_lists(period_id):
     period = ElectionPeriod.query.get_or_404(period_id)
-    if not period.is_active:
-        flash('Esta elección no está activa actualmente.', 'warning')
+    if not period.is_voting_open:
+        flash('Esta elección no está activa actualmente o se encuentra fuera de horario.', 'warning')
         return redirect(url_for('main.index'))
 
     # Check if the current user (as a voter) is in the election period's voter roll
@@ -37,8 +37,8 @@ def cast_vote(period_id, list_id):
     period = ElectionPeriod.query.get_or_404(period_id)
     candidate_list = CandidateList.query.get_or_404(list_id)
 
-    if not period.is_active:
-        flash('No se puede votar en una elección que no está activa.', 'danger')
+    if not period.is_voting_open:
+        flash('No se puede votar. La elección no está activa o se encuentra fuera de horario.', 'danger')
         return redirect(url_for('.show_lists', period_id=period_id))
 
     # Verify the list belongs to the correct election period

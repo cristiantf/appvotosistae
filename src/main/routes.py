@@ -9,17 +9,21 @@ from src.models import ElectionPeriod, CandidateList, Vote, User
 @bp.route('/index')
 def index():
     try:
-        active_elections = ElectionPeriod.query.filter_by(is_active=True).all()
+        all_elections = ElectionPeriod.query.all()
+        active_elections = [e for e in all_elections if e.current_status == 'active']
+        upcoming_elections = [e for e in all_elections if e.current_status == 'pending']
     except SQLAlchemyError:
         flash('Error de base de datos: no se pudieron cargar las elecciones.', 'danger')
         active_elections = []
-    return render_template('index.html', title='Home', elections=active_elections)
+        upcoming_elections = []
+    return render_template('index.html', title='Home', elections=active_elections, upcoming_elections=upcoming_elections)
 
 
 @bp.route('/results')
 def results():
     try:
-        finished_elections = ElectionPeriod.query.filter_by(is_active=False).order_by(ElectionPeriod.id.desc()).all()
+        all_elections = ElectionPeriod.query.order_by(ElectionPeriod.id.desc()).all()
+        finished_elections = [e for e in all_elections if e.current_status in ('finished', 'manual_inactive')]
     except SQLAlchemyError:
         flash('Error de base de datos: no se pudieron cargar los resultados.', 'danger')
         finished_elections = []
@@ -30,7 +34,7 @@ def results():
 def period_results(period_id):
     try:
         period = ElectionPeriod.query.get_or_404(period_id)
-        if period.is_active:
+        if period.current_status in ('active', 'pending'):
             flash('Los resultados para esta elección aún no están disponibles.', 'info')
             return redirect(url_for('main.results'))
 

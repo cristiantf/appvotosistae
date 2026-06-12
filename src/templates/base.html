@@ -11,7 +11,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light navbar-custom">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">Voting System</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}"><i class="fas fa-vote-yea text-primary"></i> Sistema de Votación</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -19,16 +19,19 @@
                 <ul class="navbar-nav ml-auto align-items-center">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <span class="nav-link font-weight-bold mr-3 text-primary">¡Hola, {{ current_user.voter.name }} {{ current_user.voter.lastname }}!</span>
+                            <span class="nav-link font-weight-bold mr-3 text-primary">¡Hola, {{ current_user.voter.name if current_user.voter else current_user.username }}!</span>
                         </li>
                         {% if current_user.is_admin %}
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.list_election_periods') }}">Elections</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-chart-line"></i> Panel de Control</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.list_election_periods') }}"><i class="fas fa-list-alt"></i> Elecciones</a></li>
                         {% endif %}
-                        <li class="nav-item ml-2"><a class="btn btn-secondary-premium" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                        {% if session.get('impersonator_id') %}
+                            <li class="nav-item ml-2"><a class="btn btn-warning btn-sm" href="{{ url_for('admin.revert_impersonation') }}"><i class="fas fa-undo"></i> Volver a mi rol</a></li>
+                        {% endif %}
+                        <li class="nav-item ml-2"><a class="btn btn-outline-danger btn-sm" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
-                         <li class="nav-item ml-2"><a class="btn btn-premium" href="{{ url_for('auth.register') }}">Register</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a></li>
+                         <li class="nav-item ml-2"><a class="btn btn-premium btn-sm" href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus"></i> Registrarse</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -53,7 +56,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
-        function confirmDeletion(event, formElement, titleText, textMsg) {
+        function confirmDeletion(event, formElement, titleText, textMsg, confirmText = 'Sí, eliminar') {
             event.preventDefault();
             Swal.fire({
                 title: titleText || '¿Estás seguro?',
@@ -62,7 +65,7 @@
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Sí, eliminar',
+                confirmButtonText: confirmText,
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {

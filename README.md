@@ -4,16 +4,20 @@ Este proyecto es una aplicación web de votación construida con el micro-framew
 
 ## Características Principales
 
-- **Gestión de Administradores:**
-  - Crear y gestionar períodos electorales.
-  - Cargar padrones de votantes desde archivos CSV.
-  - Crear y asignar candidatos a listas dentro de un período electoral.
+- **Gestión Avanzada y Seguridad:**
+  - Roles avanzados con jerarquía: Super Admin y Administrador.
+  - Creación y gestión de períodos electorales con **automatización por fechas** y controles manuales de emergencia.
+  - Carga masiva de padrones de votantes desde archivos Excel o CSV.
+  - Sistema dinámico de Dignidades electorales.
+  - Registro anónimo de votos para garantizar secreto y transparencia.
+  - Función de impersonación (`Login As`) para auditoría y soporte por Super Admins.
 
 - **Plataforma de Votación para Usuarios:**
+  - Interfaz UI/UX moderna, responsive y accesible (estilo Premium).
   - Iniciar sesión de forma segura con credenciales únicas.
-  - Ver los períodos electorales disponibles.
-  - Visualizar las listas y los candidatos de cada elección.
-  - Emitir un voto único por período electoral.
+  - Paneles de control temporizados con cuentas regresivas automáticas.
+  - Visualización estructurada de las papeletas, incluyendo Voto Nulo y Voto en Blanco.
+  - Emisión de voto único garantizado por sistema anti-doble voto.
 
 ## Primeros Pasos
 

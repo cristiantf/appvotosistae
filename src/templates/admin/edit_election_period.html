@@ -1,23 +1,52 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <h2>Editar Periodo Electoral</h2>
-    <hr>
-
-    <div class="card my-4">
-        <div class="card-body">
-            <form action="{{ url_for('admin.edit_election_period', period_id=period.id) }}" method="post" novalidate>
-                {{ form.hidden_tag() }}
-                <div class="mb-3">
-                    {{ form.name.label(class="form-label") }}<br>
-                    {{ form.name(class="form-control", size=32) }}
+<div class="container mt-4 animate-slide-up">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card card-premium shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Editar Periodo Electoral</h4>
+                    <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-sm btn-light text-primary">Volver</a>
                 </div>
-                <p>
-                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-secondary">Cancelar</a>
-                </p>
-            </form>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.edit_election_period', period_id=period.id) }}" method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-4">
+                            {{ form.name.label(class="form-label font-weight-bold") }}
+                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                            {% for error in form.name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.start_date.label(class="form-label font-weight-bold text-success") }}
+                                {{ form.start_date(class="form-control" + (" is-invalid" if form.start_date.errors else "")) }}
+                                <small class="form-text text-muted">Apertura automática de urnas.</small>
+                                {% for error in form.start_date.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                {{ form.end_date.label(class="form-label font-weight-bold text-danger") }}
+                                {{ form.end_date(class="form-control" + (" is-invalid" if form.end_date.errors else "")) }}
+                                <small class="form-text text-muted">Cierre automático de urnas.</small>
+                                {% for error in form.end_date.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            {{ form.submit(class="btn btn-premium w-100") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>

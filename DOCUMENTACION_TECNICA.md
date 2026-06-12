@@ -47,11 +47,12 @@ appvotosistae/
 
 La base de datos relacional define las siguientes entidades principales en `src/models.py`:
 
-- **`User`**: Representa a un usuario del sistema que puede hacer login. Tiene roles definidos por el flag booleano `is_admin`. Se relaciona con un `Voter`.
+- **`User`**: Representa a un usuario del sistema que puede hacer login. Tiene roles definidos por los flags booleanos `is_admin` y `is_superadmin`. Se relaciona con un `Voter`.
 - **`Voter`**: (Padrón Electoral) Almacena los datos del elector (Cédula, Nombres, Apellidos). Es la entidad central de validación.
-- **`ElectionPeriod`**: Define un proceso electoral (Ej. "Elecciones Estudiantiles 2024"). Controla el estado general (Activo/Inactivo) y las fechas de inicio/fin.
+- **`ElectionPeriod`**: Define un proceso electoral (Ej. "Elecciones Estudiantiles 2024"). Controla el estado dinámicamente mediante las propiedades calculadas `current_status` (pending, active, finished, manual_inactive) e `is_voting_open`, basándose en las fechas `start_date` y `end_date` contrastadas con la hora del servidor.
 - **`CandidateList`**: Representa un movimiento o partido, así como opciones predeterminadas (Voto Nulo, Voto en Blanco). Se asocia obligatoriamente a un `ElectionPeriod`.
-- **`Candidate`**: Persona que se postula a una dignidad específica dentro de un `CandidateList`. Debe estar registrado previamente como `Voter` válido.
+- **`Dignity`**: Representa un cargo específico en disputa dentro de un periodo (Presidente, Vicepresidente, etc.).
+- **`Candidate`**: Persona que se postula a una dignidad (`Dignity`) específica dentro de un `CandidateList`. Debe estar registrado previamente como `Voter` válido.
 - **`VoterParticipation`**: Registra la asistencia de un elector a las urnas. Relaciona a un `Voter` con un `ElectionPeriod` para validar que ya votó, sin saber qué opción eligió.
 - **`Vote`**: Representa el sufragio emitido anónimo. Relaciona un `ElectionPeriod` y un `CandidateList` sin almacenar quién lo emitió.
 - **`AuditLog`**: Registra las acciones críticas de los administradores en el sistema, asegurando trazabilidad.
@@ -59,21 +60,21 @@ La base de datos relacional define las siguientes entidades principales en `src/
 
 ## 4. Seguridad y Autenticación
 
-- **Manejo de Sesiones:** Utiliza `Flask-Login` para gestionar la sesión de usuario y la persistencia del estado de autenticación.
+- **Manejo de Sesiones e Impersonación:** Utiliza `Flask-Login` para gestionar la sesión de usuario. Incluye soporte nativo para **Impersonación** (`login_as`), donde un superadmin puede iniciar sesión asumiendo la identidad de otro usuario para fines de depuración o asistencia técnica.
 - **Hashing de Contraseñas:** Se emplea `werkzeug.security` (`generate_password_hash`, `check_password_hash`) para almacenar contraseñas seguras en la base de datos (algoritmo pbkdf2:sha256).
-- **Autorización:** Se utiliza el decorador `@login_required` para proteger rutas, y un decorador personalizado `@admin_required` (en `src/decorators.py`) para restringir el acceso a paneles administrativos.
+- **Autorización:** Se utiliza el decorador `@login_required` para proteger rutas, y decoradores personalizados como `@admin_required` y `@superadmin_required` (en `src/decorators.py`) para segmentar el acceso a los paneles.
 - **Protección CSRF:** Implementado automáticamente a través de `Flask-WTF` en todos los formularios de la aplicación.
 
 ## 5. Procesamiento de Archivos y Cargas
 
-- **Listas y Candidatos:** Las imágenes de listas y candidatos se procesan a través de la función `save_picture` en `admin/routes.py`, la cual genera un token hexadecimal aleatorio (con el módulo `secrets`) para el nombre de archivo, evitando colisiones y sanitizando la entrada antes de guardar en `src/static/uploads/`.
+- **Listas y Candidatos:** Las imágenes de listas y candidatos se procesan a través de la función `save_picture` en `admin/routes.py`, la cual genera un token hexadecimal aleatorio (con el módulo `secrets`) para el nombre de archivo, evitando colisiones.
 - **Carga de Padrones:** Se utiliza la librería `pandas` para leer archivos `.xlsx` o `.csv`. La función `load_voters_from_excel` (en `src/utils.py`) optimiza la inserción extrayendo las cédulas y haciendo una "Bulk Query" para minimizar las consultas a la base de datos, asociándolos luego al periodo electoral actual.
 
 ## 6. Lógica Crítica: Emisión de Votos
 
 El proceso de sufragio se maneja en el Blueprint `voting` (`src/voting/routes.py`).
 
-1. **Validación de Periodo:** Verifica que el periodo (`ElectionPeriod`) exista y esté marcado como `is_active=True`.
+1. **Validación de Periodo y Temporalidad:** Verifica que el periodo (`ElectionPeriod`) exista y esté abierto temporalmente evaluando la propiedad `is_voting_open` (que comprueba las fechas de inicio/fin y el estado de detención manual).
 2. **Validación de Participación:** Consulta la tabla `VoterParticipation` buscando un registro previo que coincida con `current_user.voter_id` y `election_period_id`. Si existe, se rechaza la operación.
 3. **Registro Anónimo:** Si pasa las validaciones, se insertan dos registros independientes: 
    - Un registro en `VoterParticipation` para asentar la comparecencia del elector.

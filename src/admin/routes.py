@@ -3,14 +3,15 @@ import os
 import secrets
 import io
 import pandas as pd
-from flask import render_template, redirect, url_for, flash, request, current_app, send_file
+from flask import render_template, redirect, url_for, flash, request, current_app, send_file, session
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from src import db
 from src.admin import bp
 from src.admin.forms import (
     FileUploadForm, ElectionPeriodForm, CandidateListForm,
-    AddCandidateForm, EditCandidateForm, VoterForm, DignityForm
+    AddCandidateForm, EditCandidateForm, VoterForm, DignityForm, EditUserForm,
+    CreateUserForm
 )
 from src.models import Voter, ElectionPeriod, CandidateList, Candidate, User, Vote, AuditLog, Dignity
 from src.utils import load_voters_from_excel
@@ -70,7 +71,11 @@ def list_election_periods():
 def add_election_period():
     form = ElectionPeriodForm()
     if form.validate_on_submit():
-        new_period = ElectionPeriod(name=form.name.data)
+        new_period = ElectionPeriod(
+            name=form.name.data,
+            start_date=form.start_date.data,
+            end_date=form.end_date.data
+        )
         db.session.add(new_period)
         db.session.flush()
         
@@ -210,6 +215,8 @@ def edit_election_period(period_id):
     form = ElectionPeriodForm(obj=period)
     if form.validate_on_submit():
         period.name = form.name.data
+        period.start_date = form.start_date.data
+        period.end_date = form.end_date.data
         db.session.commit()
         flash('El periodo electoral ha sido actualizado.', 'success')
         return redirect(url_for('admin.list_election_periods'))
@@ -435,8 +442,39 @@ def edit_voter(voter_id):
 @login_required
 @superadmin_required
 def list_users():
-    users = User.query.all()
-    return render_template('admin/list_users.html', users=users)
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    role_filter = request.args.get('role', 'all')
+    
+    query = User.query
+    
+    if search:
+        query = query.filter(User.username.ilike(f'%{search}%'))
+        
+    if role_filter == 'superadmin':
+        query = query.filter(User.is_superadmin == True)
+    elif role_filter == 'admin':
+        query = query.filter(User.is_admin == True, User.is_superadmin == False)
+    elif role_filter == 'student':
+        query = query.filter(User.is_admin == False, User.is_superadmin == False)
+        
+    pagination = query.order_by(User.id.desc()).paginate(page=page, per_page=20, error_out=False)
+    
+    return render_template('admin/list_users.html', pagination=pagination, search=search, role_filter=role_filter)
+
+@bp.route('/users/add', methods=['GET', 'POST'])
+@login_required
+@superadmin_required
+def add_user():
+    form = CreateUserForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, is_admin=form.is_admin.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(f'Usuario {user.username} creado exitosamente.', 'success')
+        return redirect(url_for('admin.list_users'))
+    return render_template('admin/add_user.html', form=form)
 
 @bp.route('/users/<int:user_id>/toggle_admin', methods=['POST'])
 @login_required
@@ -453,6 +491,41 @@ def toggle_admin(user_id):
         flash(f'{user.username} es ahora {"un administrador" if user.is_admin else "un usuario normal"}.', 'success')
     return redirect(url_for('admin.list_users'))
 
+@bp.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@login_required
+@superadmin_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.is_superadmin and user.id != current_user.id:
+        flash('No puedes editar a otro super administrador.', 'danger')
+        return redirect(url_for('admin.list_users'))
+        
+    form = EditUserForm(obj=user, original_username=user.username)
+    if form.validate_on_submit():
+        user.username = form.username.data
+        if form.password.data:
+            user.set_password(form.password.data)
+        db.session.commit()
+        flash('Usuario actualizado correctamente.', 'success')
+        return redirect(url_for('admin.list_users'))
+        
+    return render_template('admin/edit_user.html', form=form, user=user)
+
+@bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@superadmin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user == current_user:
+        flash('No puedes eliminar tu propia cuenta.', 'danger')
+    elif user.is_superadmin:
+        flash('No puedes eliminar a un super administrador.', 'danger')
+    else:
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'El usuario {user.username} ha sido eliminado del sistema.', 'success')
+    return redirect(url_for('admin.list_users'))
+
 @bp.route('/superadmin/login_as/<int:user_id>', methods=['POST'])
 @login_required
 @superadmin_required
@@ -462,9 +535,24 @@ def login_as(user_id):
         flash('No puedes impersonar a otro super administrador.', 'danger')
         return redirect(url_for('admin.list_users'))
     
+    session['impersonator_id'] = current_user.id
     login_user(user)
     flash(f'Sesión iniciada como {user.username}.', 'success')
     
     if user.is_admin:
         return redirect(url_for('admin.admin_dashboard'))
+    return redirect(url_for('main.index'))
+
+@bp.route('/superadmin/revert_impersonation')
+@login_required
+def revert_impersonation():
+    impersonator_id = session.pop('impersonator_id', None)
+    if impersonator_id:
+        superadmin = User.query.get(impersonator_id)
+        if superadmin and superadmin.is_superadmin:
+            login_user(superadmin)
+            flash('Has regresado a tu rol de Super Admin.', 'success')
+            return redirect(url_for('admin.list_users'))
+    
+    flash('No se pudo restaurar la sesión original.', 'danger')
     return redirect(url_for('main.index'))

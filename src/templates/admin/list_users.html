@@ -4,11 +4,38 @@
 <div class="container mt-4 animate-slide-up">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="font-weight-bold text-primary">Gestión de Usuarios (Super Admin)</h1>
+        <a href="{{ url_for('admin.add_user') }}" class="btn btn-premium"><i class="fas fa-plus"></i> Añadir Nuevo Usuario</a>
     </div>
     <p class="text-muted">Administra los roles del sistema y accede temporalmente a otras cuentas.</p>
     <hr>
 
-    <div class="card card-premium p-0 overflow-hidden">
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body bg-light rounded">
+            <form method="GET" action="{{ url_for('admin.list_users') }}" class="row g-3 align-items-center">
+                <div class="col-md-6 mb-2 mb-md-0">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        </div>
+                        <input type="text" class="form-control" name="search" placeholder="Buscar por cédula o alias..." value="{{ search }}">
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2 mb-md-0">
+                    <select name="role" class="form-control custom-select">
+                        <option value="all" {% if role_filter == 'all' %}selected{% endif %}>Todos los roles</option>
+                        <option value="superadmin" {% if role_filter == 'superadmin' %}selected{% endif %}>Super Admin</option>
+                        <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Administrador</option>
+                        <option value="student" {% if role_filter == 'student' %}selected{% endif %}>Estudiante</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-md-right">
+                    <button type="submit" class="btn btn-premium w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card card-premium p-0 overflow-hidden mb-4">
         <table class="table table-hover mb-0">
             <thead class="bg-light">
                 <tr>
@@ -18,7 +45,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for user in users %}
+                {% for user in pagination.items %}
                 <tr>
                     <td class="align-middle font-weight-bold">{{ user.username }}</td>
                     <td class="align-middle">
@@ -40,18 +67,58 @@
                                 {% endif %}
                             </form>
                         {% endif %}
+                        {% if not user.is_superadmin %}
+                            <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-outline-info btn-sm">Editar</a>
+                            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST" class="d-inline ml-1" onsubmit="confirmDeletion(event, this, 'Eliminar Usuario', '¿Estás seguro de eliminar este usuario? Perderá el acceso al sistema.')">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                            </form>
+                        {% endif %}
                         
                         {% if user.id != current_user.id and not user.is_superadmin %}
-                            <form action="{{ url_for('admin.login_as', user_id=user.id) }}" method="POST" class="d-inline ml-2" onsubmit="confirmDeletion(event, this, '¿Iniciar sesión como {{ user.username }}?', 'Serás desconectado de tu sesión actual de super administrador y pasarás a usar el sistema como este usuario.')">
+                            <form action="{{ url_for('admin.login_as', user_id=user.id) }}" method="POST" class="d-inline ml-2" onsubmit="confirmDeletion(event, this, '¿Iniciar sesión como {{ user.username }}?', 'Serás desconectado de tu sesión actual de super administrador y pasarás a usar el sistema como este usuario.', 'Sí, acceder')">
                                 <button type="submit" class="btn btn-premium btn-sm"><i class="fas fa-sign-in-alt"></i> Login As</button>
                             </form>
                         {% endif %}
                     </td>
                 </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center py-4 text-muted">No se encontraron usuarios con esos filtros.</td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    
+    <!-- Paginación -->
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Navegación de páginas de usuarios">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin.list_users', page=pagination.prev_num, search=search, role=role_filter) }}" tabindex="-1">Anterior</a>
+            </li>
+            
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if pagination.page == page_num %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('admin.list_users', page=page_num, search=search, role=role_filter) }}">{{ page_num }}</a></li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin.list_users', page=pagination.next_num, search=search, role=role_filter) }}">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="text-center text-muted small mb-4">
+        Mostrando {{ pagination.items|length }} de {{ pagination.total }} usuarios totales.
+    </div>
+    {% endif %}
 
     <div class="mt-4">
         <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary-premium"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>

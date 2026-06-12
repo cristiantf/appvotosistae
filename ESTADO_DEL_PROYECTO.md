@@ -80,6 +80,17 @@ A partir de la revisión del código y la investigación sobre la normativa de e
 - **Formularios Dinámicos:** Al crear o editar un candidato, el campo de dignidad es ahora un desplegable (`SelectField`) que se carga automáticamente con las dignidades configuradas para ese periodo, evitando errores de tipeo.
 - **Visualización Pública:** La papeleta electoral (`show_lists.html`) fue actualizada para mostrar de forma compacta (mini-avatares, nombre y dignidad) a todos los candidatos que conforman cada lista.
 
+### Sprint 4: Gestión de Usuarios y Paginación (Completado)
+- **Gestión Avanzada:** Se implementó CRUD completo de usuarios desde el panel de Super Admin, incluyendo filtros y barra de búsqueda.
+- **Paginación:** Las listas extensas (como el listado de usuarios) ahora usan paginación del lado del servidor.
+- **Seguridad UI:** Integración de SweetAlert2 para validaciones de acciones destructivas (eliminación de usuarios, periodos y listas).
+
+### Sprint 5: Automatización de Elecciones y Mejoras de UI (Completado)
+- **Fechas Automáticas:** El modelo `ElectionPeriod` adquirió lógica inteligente para calcular su estado (`pending`, `active`, `finished`) según la hora exacta del servidor en contraste con las propiedades `start_date` y `end_date`.
+- **Botón de Pánico:** El estado manual se conservó como un control de emergencia (`manual_inactive`) que permite detener el proceso electoral forzosamente.
+- **Temporizador Dinámico:** Implementación de relojes de cuenta regresiva automáticos (JavaScript) en la página principal para las elecciones futuras y activas.
+- **Traducción y Modernización Premium:** Migración del panel de administración (Dashboard y Lista de Periodos) a un diseño basado en tarjetas (Cards Premium), modernización visual de botones, alertas sin duplicados, y traducción completa al español (barras de navegación y controles).
+
 ## 5. Próximos Pasos Inmediatos
-1. Refinar las fechas automáticas de elección.
-2. Validaciones documentales y reportes PDF de resultados.
+1. Validaciones documentales y requisitos académicos de candidatos.
+2. Generación automática de reportes PDF de resultados y actas de cierre.

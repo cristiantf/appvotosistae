@@ -65,11 +65,32 @@ Reconstrucción completa de las plantillas utilizando principios de diseño mode
 #### [MODIFY] `src/utils.py`
 - Optimizar la función `load_voters_from_excel` utilizando inserciones masivas de SQLAlchemy (bulk inserts o execute_values) en lugar de bucles fila por fila, previniendo cuellos de botella con padrones grandes (ej. +5000 estudiantes).
 
-### 5. Sprint 2: Panel de Superadmin y Corrección de Imágenes (Completado)
-- **Roles Avanzados:** Implementación del flag `is_superadmin` en el modelo de usuario.
-- **Seguridad:** Inserción del decorador `@superadmin_required` para proteger la gestión de roles.
-- **Impersonación:** Creación de ruta `login_as` para permitir a superadmins acceder como cualquier usuario.
-- **Correcciones Windows:** Sustitución de `os.path.join` por strings `/` para renderizar imágenes correctamente en todas las plataformas.
+### 5. Historial de Sprints Completados
+
+#### Sprint 1: Cumplimiento Legal y Rediseño Base (Completado)
+- Rediseño de Voto Secreto (`VoterParticipation` y `Vote` anónimo).
+- Voto Blanco y Nulo automáticos.
+- Rediseño UI Vainilla Premium.
+
+#### Sprint 2: Panel de Superadmin e Impersonación (Completado)
+- Roles avanzados (`is_superadmin`).
+- Impersonación ("Login As").
+- Corrección de barras diagonales en imágenes para Windows.
+
+#### Sprint 3: Gestión Dinámica de Dignidades y Papeleta Electoral (Completado)
+- Creación de modelo `Dignity`.
+- Formularios dinámicos en la creación de candidatos vinculados a la dignidad.
+- Tarjetas compactas en papeleta electoral pública.
+
+#### Sprint 4: Gestión de Usuarios (Completado)
+- CRUD completo de administradores y usuarios (`Super Admin`).
+- Paginación server-side.
+- Confirmaciones de seguridad mejoradas (SweetAlert2).
+
+#### Sprint 5: Automatización y Control de Tiempo (Completado)
+- Transición a lógica de estado temporal basada en fechas en `ElectionPeriod` (`pending`, `active`, `finished`).
+- Temporizadores y contadores de tiempo en la UI (JavaScript).
+- Refinamiento y traducción de UI al español (Paneles de Control).
 
 ## Verification Plan
 
@@ -79,6 +100,5 @@ Reconstrucción completa de las plantillas utilizando principios de diseño mode
 - Validar el control de acceso en base a las fechas de `ElectionPeriod`.
 
 ### Manual Verification
-- Cargar un archivo de prueba con 1000 registros para probar la eficiencia del bulk insert.
 - Validar mediante el navegador la responsividad del diseño en formato móvil.
-- Ejecutar un proceso electoral de inicio a fin con múltiples cuentas y validar que los resultados de Nulos y Blancos se reflejen correctamente en el dashboard.
+- Ejecutar un proceso electoral de inicio a fin simulando las franjas horarias y verificar bloqueos automáticos.

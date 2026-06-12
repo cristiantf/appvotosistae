@@ -1,4 +1,4 @@
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import login_user, logout_user, current_user
 
 from src.auth import bp
@@ -35,6 +35,7 @@ def login():
 
 @bp.route('/logout')
 def logout():
+    session.pop('impersonator_id', None)
     logout_user()
     flash('Has cerrado sesión exitosamente.', 'info')
     return redirect(url_for('main.index'))

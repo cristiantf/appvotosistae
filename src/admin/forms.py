@@ -1,6 +1,6 @@
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, BooleanField, SelectField, FileField
+from wtforms import StringField, SubmitField, BooleanField, SelectField, FileField, PasswordField
 from wtforms.validators import DataRequired, ValidationError, Optional
 from src.models import Voter, ElectionPeriod
 from flask_wtf.file import FileAllowed
@@ -9,9 +9,14 @@ class FileUploadForm(FlaskForm):
     file = FileField('CSV File', validators=[DataRequired(), FileAllowed(['csv', 'xlsx'], 'CSV or Excel files only!')])
     submit = SubmitField('Upload')
 
+from wtforms import StringField, SubmitField, BooleanField, SelectField, FileField, PasswordField, DateTimeLocalField
+from wtforms.validators import DataRequired, ValidationError, Optional
+
 class ElectionPeriodForm(FlaskForm):
-    name = StringField('Election Period Name', validators=[DataRequired()])
-    submit = SubmitField('Create Period')
+    name = StringField('Nombre del Periodo', validators=[DataRequired()])
+    start_date = DateTimeLocalField('Fecha y Hora de Inicio', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    end_date = DateTimeLocalField('Fecha y Hora de Cierre', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    submit = SubmitField('Guardar Periodo')
 
 class CandidateListForm(FlaskForm):
     name = StringField('List Name', validators=[DataRequired()])
@@ -57,3 +62,29 @@ class VoterForm(FlaskForm):
             voter = Voter.query.filter_by(cedula=cedula.data).first()
             if voter:
                 raise ValidationError('This cédula is already in use. Please choose a different one.')
+
+class EditUserForm(FlaskForm):
+    username = StringField('Username (Cédula)', validators=[DataRequired()])
+    password = PasswordField('Nueva Contraseña (dejar en blanco para mantener la actual)')
+    submit = SubmitField('Actualizar Usuario')
+
+    def __init__(self, original_username=None, *args, **kwargs):
+        super(EditUserForm, self).__init__(*args, **kwargs)
+        self.original_username = original_username
+
+    def validate_username(self, username):
+        if username.data != self.original_username:
+            user = User.query.filter_by(username=username.data).first()
+            if user:
+                raise ValidationError('Este nombre de usuario ya está en uso.')
+
+class CreateUserForm(FlaskForm):
+    username = StringField('Username (Ej: Cédula o Alias)', validators=[DataRequired()])
+    password = PasswordField('Contraseña', validators=[DataRequired()])
+    is_admin = BooleanField('Hacer Administrador')
+    submit = SubmitField('Crear Usuario')
+
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('Este nombre de usuario ya está en uso.')

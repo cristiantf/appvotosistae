@@ -11,40 +11,107 @@
 
     <h2 class="text-center my-4">Elecciones Activas</h2>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+
 
     <div class="row">
         {% if elections %}
             {% for period in elections %}
             <div class="col-md-4 mb-4">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ period.name }}</h5>
-                        <p class="card-text">Este proceso electoral está abierto.</p>
-                        <a href="{{ url_for('voting.show_lists', period_id=period.id) }}" class="btn btn-primary">
-                            <i class="fas fa-vote-yea"></i> Ir a Votar
-                        </a>
+                <div class="card card-premium text-center border-0 shadow-sm h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-primary font-weight-bold">{{ period.name }}</h5>
+                        <p class="card-text text-success mb-2"><i class="fas fa-circle text-success" style="font-size: 0.6em; vertical-align: middle;"></i> Este proceso electoral está abierto.</p>
+                        {% if period.end_date %}
+                            <p class="small text-muted mb-1"><strong>Cierra:</strong> {{ period.end_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p class="mb-4 text-danger font-weight-bold countdown-timer" data-target-date="{{ period.end_date.isoformat() }}"><i class="fas fa-stopwatch"></i> Calculando tiempo...</p>
+                        {% else %}
+                            <p class="mb-4 text-muted">Sin fecha de cierre configurada.</p>
+                        {% endif %}
+                        <div class="mt-auto">
+                            <a href="{{ url_for('voting.show_lists', period_id=period.id) }}" class="btn btn-premium w-100">
+                                <i class="fas fa-vote-yea"></i> Ir a Votar
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
             {% endfor %}
         {% else %}
             <div class="col">
-                <div class="alert alert-info text-center" role="alert">
-                    <h4 class="alert-heading">No hay elecciones activas</h4>
-                    <p>En este momento, no hay ningún proceso electoral en curso. Por favor, vuelva más tarde o póngase en contacto con un administrador si cree que esto es un error.</p>
+                <div class="alert alert-info text-center border-0 shadow-sm" role="alert">
+                    <h5 class="alert-heading font-weight-bold"><i class="fas fa-info-circle"></i> No hay elecciones activas</h5>
+                    <p class="mb-0">En este momento, no hay ningún proceso electoral abierto para votar.</p>
                 </div>
             </div>
         {% endif %}
     </div>
+
+    {% if upcoming_elections %}
+    <h3 class="text-center my-4 mt-5 text-muted">Próximas Elecciones</h3>
+    <div class="row justify-content-center">
+        {% for period in upcoming_elections %}
+        <div class="col-md-4 mb-4">
+            <div class="card card-premium text-center border-0 shadow-sm opacity-75 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-secondary font-weight-bold">{{ period.name }}</h5>
+                    <p class="card-text text-muted mb-2"><i class="fas fa-clock"></i> Pendiente por iniciar</p>
+                    {% if period.start_date %}
+                        <p class="small text-muted mb-1"><strong>Inicia:</strong> {{ period.start_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                        <p class="mb-4 text-warning font-weight-bold countdown-timer" data-target-date="{{ period.start_date.isoformat() }}"><i class="fas fa-hourglass-half"></i> Calculando tiempo...</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const timers = document.querySelectorAll('.countdown-timer');
+
+        function updateTimers() {
+            const now = new Date().getTime();
+
+            timers.forEach(timer => {
+                const targetDateIso = timer.getAttribute('data-target-date');
+                if (!targetDateIso) return;
+                
+                const targetDate = new Date(targetDateIso).getTime();
+                const distance = targetDate - now;
+
+                if (distance < 0) {
+                    timer.innerHTML = '<i class="fas fa-check"></i> Tiempo terminado. Por favor recarga la página.';
+                    timer.classList.replace('text-danger', 'text-muted');
+                    timer.classList.replace('text-warning', 'text-muted');
+                    return;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                let displayStr = "";
+                if (days > 0) displayStr += days + "d ";
+                displayStr += String(hours).padStart(2, '0') + "h " + 
+                              String(minutes).padStart(2, '0') + "m " + 
+                              String(seconds).padStart(2, '0') + "s";
+
+                // Keep the original icon based on whether it's start or end countdown
+                const icon = timer.querySelector('i');
+                const iconHTML = icon ? icon.outerHTML + " " : "";
+                
+                timer.innerHTML = iconHTML + displayStr;
+            });
+        }
+
+        // Run immediately, then every second
+        updateTimers();
+        setInterval(updateTimers, 1000);
+    });
+</script>
 {% endblock %}

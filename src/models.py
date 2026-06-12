@@ -48,6 +48,26 @@ class ElectionPeriod(db.Model):
     participations = db.relationship('VoterParticipation', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
     dignities = db.relationship('Dignity', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
 
+    @property
+    def current_status(self):
+        from datetime import datetime
+        if not self.is_active:
+            return 'manual_inactive'
+        
+        now = datetime.now()
+        
+        if self.start_date and now < self.start_date:
+            return 'pending'
+            
+        if self.end_date and now > self.end_date:
+            return 'finished'
+            
+        return 'active'
+
+    @property
+    def is_voting_open(self):
+        return self.current_status == 'active'
+
 class Dignity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
