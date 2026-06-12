@@ -23,7 +23,7 @@
                         </div>
                         <div class="mb-3">
                             {{ form.dignity.label(class="form-label") }}
-                            {{ form.dignity(class="form-control") }}
+                            {{ form.dignity(class="form-select") }}
                         </div>
                         <div class="mb-3">
                             {{ form.image.label(class="form-label") }} (Opcional)
@@ -56,8 +56,8 @@
                         </div>
                         <div>
                             <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-secondary">Editar</a>
-                            <form action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" method="post" class="d-inline ms-1">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este candidato?')">Eliminar</button>
+                            <form action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" method="post" class="d-inline ms-1" onsubmit="confirmDeletion(event, this, 'Eliminar Candidato', '¿Estás seguro de que quieres eliminar este candidato?')">
+                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                             </form>
                         </div>
                     </li>

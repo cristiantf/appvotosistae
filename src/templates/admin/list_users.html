@@ -42,7 +42,7 @@
                         {% endif %}
                         
                         {% if user.id != current_user.id and not user.is_superadmin %}
-                            <form action="{{ url_for('admin.login_as', user_id=user.id) }}" method="POST" class="d-inline ml-2" onsubmit="return confirm('¿Iniciar sesión como {{ user.username }}? Serás desconectado de tu sesión actual.');">
+                            <form action="{{ url_for('admin.login_as', user_id=user.id) }}" method="POST" class="d-inline ml-2" onsubmit="confirmDeletion(event, this, '¿Iniciar sesión como {{ user.username }}?', 'Serás desconectado de tu sesión actual de super administrador y pasarás a usar el sistema como este usuario.')">
                                 <button type="submit" class="btn btn-premium btn-sm"><i class="fas fa-sign-in-alt"></i> Login As</button>
                             </form>
                         {% endif %}

@@ -1,7 +1,9 @@
 
 import os
 import secrets
-from flask import render_template, redirect, url_for, flash, request
+import io
+import pandas as pd
+from flask import render_template, redirect, url_for, flash, request, current_app, send_file
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from src import db
@@ -104,6 +106,8 @@ def manage_election_period(period_id):
                              sq_lower in v.lastname.lower()]
     else:
         voters_to_display = all_voters
+    total_voters = len(voters_to_display)
+    voters_to_display = voters_to_display[:20]
 
     dignities = period.dignities.all()
 
@@ -113,6 +117,7 @@ def manage_election_period(period_id):
                            voter_form=voter_form,
                            dignity_form=dignity_form,
                            voters=voters_to_display,
+                           total_voters=total_voters,
                            dignities=dignities)
 
 @bp.route('/election_periods/<int:period_id>/dignities/add', methods=['POST'])
@@ -139,6 +144,49 @@ def delete_dignity(dignity_id):
     db.session.commit()
     flash('Dignidad eliminada.', 'success')
     return redirect(url_for('admin.manage_election_period', period_id=period_id))
+
+@bp.route('/download_voter_template')
+@login_required
+@admin_required
+def download_voter_template():
+    file_path = os.path.join(current_app.root_path, 'static', 'downloads', 'plantilla_votantes.xlsx')
+    return send_file(
+        file_path, 
+        as_attachment=True, 
+        download_name='plantilla_votantes.xlsx', 
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+@bp.route('/election_periods/<int:period_id>/download_roll')
+@login_required
+@admin_required
+def download_election_roll(period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
+    voters = period.voters
+    
+    data = []
+    for v in voters:
+        data.append({
+            'CÉDULA': v.cedula,
+            'NOMBRES': v.name,
+            'APELLIDOS': v.lastname
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Crear un buffer en memoria
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Padron')
+    
+    output.seek(0)
+    
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'padron_periodo_{period.name}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 @bp.route('/voters/<int:voter_id>/period/<int:period_id>/delete', methods=['POST'])
 @login_required
@@ -292,6 +340,14 @@ def add_candidate(list_id):
     form.dignity.choices = [(d.id, d.name) for d in period_dignities]
 
     if form.validate_on_submit():
+        existing_candidate = Candidate.query.filter_by(
+            candidate_list_id=list_id, 
+            dignity_id=form.dignity.data
+        ).first()
+        if existing_candidate:
+            flash(f'La dignidad seleccionada ya está ocupada por {existing_candidate.name}.', 'danger')
+            return redirect(url_for('admin.manage_list', list_id=list_id))
+
         voter = Voter.query.get(form.voter.data)
         new_candidate = Candidate(
             name=f'{voter.name} {voter.lastname}',
@@ -321,6 +377,14 @@ def edit_candidate(candidate_id):
     form.dignity.choices = [(d.id, d.name) for d in period_dignities]
 
     if form.validate_on_submit():
+        existing_candidate = Candidate.query.filter_by(
+            candidate_list_id=candidate.candidate_list_id, 
+            dignity_id=form.dignity.data
+        ).first()
+        if existing_candidate and existing_candidate.id != candidate.id:
+            flash(f'La dignidad seleccionada ya está ocupada por {existing_candidate.name}.', 'danger')
+            return redirect(url_for('admin.edit_candidate', candidate_id=candidate_id))
+
         candidate.dignity_id = form.dignity.data
         if form.image.data:
             picture_file = save_picture(form.image.data, subfolder='candidate_pics')

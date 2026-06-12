@@ -13,6 +13,11 @@ def show_lists(period_id):
         flash('Esta elección no está activa actualmente.', 'warning')
         return redirect(url_for('main.index'))
 
+    # Check if the current user (as a voter) is in the election period's voter roll
+    if not current_user.voter or current_user.voter not in period.voters:
+        flash('No te encuentras en el padrón electoral de este periodo. No puedes participar.', 'danger')
+        return redirect(url_for('main.index'))
+
     # Check if the current user (as a voter) has already voted in this period
     existing_participation = VoterParticipation.query.filter_by(
         voter_id=current_user.voter_id, 
@@ -39,6 +44,11 @@ def cast_vote(period_id, list_id):
     # Verify the list belongs to the correct election period
     if candidate_list.election_period_id != period.id:
         abort(404) # Or a more user-friendly error
+
+    # Check if the current user (as a voter) is in the election period's voter roll
+    if not current_user.voter or current_user.voter not in period.voters:
+        flash('Intento de voto rechazado: No te encuentras en el padrón electoral de este periodo.', 'danger')
+        return redirect(url_for('main.index'))
 
     # Double-check if a vote has been cast
     existing_participation = VoterParticipation.query.filter_by(
