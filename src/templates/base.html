@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light navbar-custom">
+    <nav class="navbar navbar-expand-lg navbar-light navbar-custom" style="position: relative; z-index: 1050;">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('main.index') }}"><i class="fas fa-vote-yea text-primary"></i> Sistema de Votación</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
@@ -18,23 +18,6 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto align-items-center">
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item dropdown mr-3">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center font-weight-bold text-primary" href="#" id="navbarDropdownProfile" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                {% if current_user.profile_picture %}
-                                    <img src="{{ url_for('static', filename=current_user.profile_picture) }}" alt="Foto" class="rounded-circle mr-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                {% else %}
-                                    <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center mr-2" style="width: 30px; height: 30px; font-size: 14px;">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                {% endif %}
-                                ¡Hola, {{ current_user.voter.name.split()[0] if current_user.voter else current_user.username }}!
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-right shadow-sm border-0" aria-labelledby="navbarDropdownProfile">
-                                <a class="dropdown-item" href="{{ url_for('main.profile') }}"><i class="fas fa-user-circle text-primary"></i> Mi Perfil</a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
-                            </div>
-                        </li>
                         {% if current_user.is_admin %}
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-chart-line"></i> Panel de Control</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.list_election_periods') }}"><i class="fas fa-list-alt"></i> Elecciones</a></li>
@@ -45,8 +28,25 @@
                             <li class="nav-item"><a class="nav-link text-warning font-weight-bold" href="{{ url_for('admin.list_backups') }}"><i class="fas fa-archive"></i> Respaldos</a></li>
                         {% endif %}
                         {% if session.get('impersonator_id') %}
-                            <li class="nav-item ml-2"><a class="btn btn-warning btn-sm" href="{{ url_for('admin.revert_impersonation') }}"><i class="fas fa-undo"></i> Volver a mi rol</a></li>
+                            <li class="nav-item ml-2 mr-3"><a class="btn btn-warning btn-sm" href="{{ url_for('admin.revert_impersonation') }}"><i class="fas fa-undo"></i> Volver a mi rol</a></li>
                         {% endif %}
+                        <li class="nav-item dropdown ml-3">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center font-weight-bold text-primary" href="#" id="navbarDropdownProfile" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {% if current_user.profile_picture %}
+                                    <img src="{{ url_for('static', filename=current_user.profile_picture) }}" alt="Foto" class="rounded-circle mr-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center mr-2" style="width: 30px; height: 30px; font-size: 14px;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                ¡Hola, {{ current_user.voter.name.split()[0] if current_user.voter else current_user.username }}!
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow-sm border-0" aria-labelledby="navbarDropdownProfile" style="position: absolute; z-index: 1060;">
+                                <a class="dropdown-item" href="{{ url_for('main.profile') }}"><i class="fas fa-user-circle text-primary"></i> Mi Perfil</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+                            </div>
+                        </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a></li>
                         {% if settings and settings.is_registration_open %}

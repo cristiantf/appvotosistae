@@ -16,16 +16,7 @@
         </div>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <!-- Flash manejado en base.html -->
 
     <div class="card card-premium border-0 shadow-sm">
         <div class="card-header bg-light border-0 py-3">

@@ -50,16 +50,7 @@
                     <div class="col-md-7 p-5">
                         <h4 class="mb-4 text-secondary font-weight-bold"><i class="fas fa-user-edit text-primary"></i> Configuración de Cuenta</h4>
                         
-                        {% with messages = get_flashed_messages(with_categories=true) %}
-                            {% if messages %}
-                                {% for category, message in messages %}
-                                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-                                        {{ message }}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        {% endwith %}
+                        <!-- (Mensajes globales manejados por base.html) -->
 
                         <form method="POST" action="" enctype="multipart/form-data">
                             {{ form.hidden_tag() }}
