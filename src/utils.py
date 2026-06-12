@@ -1,7 +1,8 @@
-
 import pandas as pd
+from werkzeug.security import generate_password_hash
+from sqlalchemy import insert, select
 from src import db
-from src.models import Voter, ElectionPeriod, User
+from src.models import Voter, ElectionPeriod, User, voter_period_association
 
 def load_voters_from_excel(filepath, period_id):
     try:
@@ -23,35 +24,76 @@ def load_voters_from_excel(filepath, period_id):
     if not election_period:
         raise ValueError(f"Election period with id {period_id} not found.")
 
+    # 1. Limpieza inicial: Remover nulos y duplicados dentro del mismo archivo
     df['cedula'] = df['cedula'].astype(str).str.strip()
-    existing_voters = Voter.query.filter(Voter.cedula.in_(df['cedula'].tolist())).all()
-    existing_voters_dict = {v.cedula: v for v in existing_voters}
+    df = df[df['cedula'] != 'nan']
+    df = df[df['cedula'] != '']
+    df = df.drop_duplicates(subset=['cedula'])
+    
+    excel_cedulas = df['cedula'].tolist()
+    if not excel_cedulas:
+        return
 
-    existing_users = User.query.filter(User.username.in_(df['cedula'].tolist())).all()
-    existing_users_dict = {u.username: u for u in existing_users}
+    # 2. Identificar Votantes Nuevos
+    existing_voters = Voter.query.filter(Voter.cedula.in_(excel_cedulas)).all()
+    existing_voters_set = {v.cedula for v in existing_voters}
 
+    new_voters_data = []
     for index, row in df.iterrows():
-        cedula = row['cedula']
-        voter = existing_voters_dict.get(cedula)
-        
-        if not voter:
-            voter = Voter(
-                cedula=cedula,
-                name=row['name'],
-                lastname=row['lastname']
-            )
-            db.session.add(voter)
-            existing_voters_dict[cedula] = voter
+        if row['cedula'] not in existing_voters_set:
+            new_voters_data.append({
+                'cedula': row['cedula'],
+                'name': row['name'],
+                'lastname': row['lastname']
+            })
 
-        if voter not in election_period.voters:
-            election_period.voters.append(voter)
+    # === BULK INSERT 1: VOTERS ===
+    if new_voters_data:
+        db.session.execute(insert(Voter), new_voters_data)
+        db.session.commit()
 
-        user = existing_users_dict.get(cedula)
-        if not user:
-            user = User(username=cedula, voter=voter)
-            user.set_password(cedula)
-            db.session.add(user)
-            existing_users_dict[cedula] = user
+    # Re-consultar todos los votantes para obtener sus IDs autogenerados
+    all_voters = Voter.query.filter(Voter.cedula.in_(excel_cedulas)).all()
+    voter_id_map = {v.cedula: v.id for v in all_voters}
 
-    db.session.commit()
+    # 3. Identificar Usuarios (Cuentas) Nuevas
+    existing_users = User.query.filter(User.username.in_(excel_cedulas)).all()
+    existing_users_set = {u.username for u in existing_users}
 
+    new_users_data = []
+    for cedula, v_id in voter_id_map.items():
+        if cedula not in existing_users_set:
+            # Utilizamos pbkdf2 optimizado a 10k iteraciones para no colapsar la carga masiva
+            hashed_pwd = generate_password_hash(cedula, method='pbkdf2:sha256:10000')
+            new_users_data.append({
+                'username': cedula,
+                'password_hash': hashed_pwd,
+                'is_admin': False,
+                'is_superadmin': False,
+                'voter_id': v_id
+            })
+
+    # === BULK INSERT 2: USERS ===
+    if new_users_data:
+        db.session.execute(insert(User), new_users_data)
+        db.session.commit()
+
+    # 4. Vincular Votantes con el Periodo Electoral
+    # Consultar qué votantes ya están empadronados en este periodo
+    stmt = select(voter_period_association.c.voter_id).where(voter_period_association.c.election_period_id == period_id)
+    existing_bindings = db.session.execute(stmt).fetchall()
+    
+    bound_voter_ids = {row[0] for row in existing_bindings}
+
+    new_bindings = []
+    for v_id in voter_id_map.values():
+        if v_id not in bound_voter_ids:
+            new_bindings.append({
+                'voter_id': v_id,
+                'election_period_id': period_id
+            })
+
+    # === BULK INSERT 3: ASOCIACIÓN (PADRÓN) ===
+    if new_bindings:
+        db.session.execute(insert(voter_period_association), new_bindings)
+        db.session.commit()

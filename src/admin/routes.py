@@ -35,6 +35,11 @@ def save_picture(form_picture, subfolder='profile_pics'):
 
     return f"uploads/{subfolder}/{picture_fn}"
 
+def log_admin_action(action, details=None):
+    if current_user.is_authenticated:
+        log = AuditLog(user_id=current_user.id, action=action, details=details)
+        db.session.add(log)
+
 @bp.route('/')
 @login_required
 @admin_required
@@ -53,6 +58,7 @@ def upload_voters(period_id):
         file.save(filepath)
         try:
             load_voters_from_excel(filepath, period_id)
+            log_admin_action(f"Padron subido masivamente para el periodo ID {period_id} (Archivo: {filename})")
             flash('Votantes cargados correctamente!', 'success')
         except Exception as e:
             flash(f'Ocurrió un error: {e}', 'danger')
@@ -86,8 +92,7 @@ def add_election_period():
         db.session.add(blanco)
         db.session.add(nulo)
         
-        audit = AuditLog(user_id=current_user.id, action=f"Creado periodo electoral: {new_period.name}")
-        db.session.add(audit)
+        log_admin_action(f"Creado periodo electoral: {new_period.name}")
         db.session.commit()
         flash('¡Nuevo periodo electoral creado con Voto Blanco y Nulo automáticos!', 'success')
         return redirect(url_for('admin.list_election_periods'))
@@ -135,6 +140,7 @@ def add_dignity(period_id):
     if form.validate_on_submit():
         new_dignity = Dignity(name=form.name.data, election_period_id=period_id)
         db.session.add(new_dignity)
+        log_admin_action(f"Añadida dignidad '{form.name.data}' al periodo ID {period_id}")
         db.session.commit()
         flash('Nueva dignidad añadida.', 'success')
     else:
@@ -148,6 +154,7 @@ def delete_dignity(dignity_id):
     dignity = Dignity.query.get_or_404(dignity_id)
     period_id = dignity.election_period_id
     db.session.delete(dignity)
+    log_admin_action(f"Eliminada dignidad '{dignity.name}' del periodo ID {period_id}")
     db.session.commit()
     flash('Dignidad eliminada.', 'success')
     return redirect(url_for('admin.manage_election_period', period_id=period_id))
@@ -162,6 +169,7 @@ def edit_dignity(dignity_id):
     
     if new_name and new_name.strip():
         dignity.name = new_name.strip()
+        log_admin_action(f"Dignidad ID {dignity_id} renombrada a '{new_name.strip()}'")
         db.session.commit()
         flash('Dignidad actualizada correctamente.', 'success')
     else:
@@ -220,6 +228,7 @@ def delete_voter_from_period(voter_id, period_id):
     voter = Voter.query.get_or_404(voter_id)
     if voter in period.voters:
         period.voters.remove(voter)
+        log_admin_action(f"Votante {voter.cedula} removido del periodo ID {period_id}")
         db.session.commit()
         flash(f'El votante {voter.name} {voter.lastname} ha sido removido del periodo.', 'success')
     else:
@@ -236,6 +245,7 @@ def edit_election_period(period_id):
         period.name = form.name.data
         period.start_date = form.start_date.data
         period.end_date = form.end_date.data
+        log_admin_action(f"Editado periodo electoral '{period.name}'")
         db.session.commit()
         flash('El periodo electoral ha sido actualizado.', 'success')
         return redirect(url_for('admin.list_election_periods'))
@@ -246,9 +256,19 @@ def edit_election_period(period_id):
 @admin_required
 def delete_election_period(period_id):
     period = ElectionPeriod.query.get_or_404(period_id)
+    
+    from src.backup import generate_election_backup
+    try:
+        generate_election_backup(period.id)
+        log_admin_action(f"Respaldo automático de seguridad generado por eliminación de '{period.name}'")
+    except Exception as e:
+        flash(f'Error Crítico: No se pudo generar el respaldo de seguridad. Eliminación abortada para proteger los datos. ({e})', 'danger')
+        return redirect(url_for('admin.list_election_periods'))
+        
     db.session.delete(period)
+    log_admin_action(f"Eliminado periodo electoral '{period.name}' (ID {period_id})")
     db.session.commit()
-    flash('El periodo electoral ha sido eliminado.', 'success')
+    flash('El periodo electoral ha sido eliminado. Se ha guardado una copia en el Gestor de Respaldos por seguridad.', 'success')
     return redirect(url_for('admin.list_election_periods'))
 
 @bp.route('/election_periods/<int:period_id>/toggle_active', methods=['POST'])
@@ -257,6 +277,7 @@ def delete_election_period(period_id):
 def toggle_active_period(period_id):
     period = ElectionPeriod.query.get_or_404(period_id)
     period.is_active = not period.is_active
+    log_admin_action(f"Estado del periodo '{period.name}' cambiado a {'Activo' if period.is_active else 'Inactivo'}")
     db.session.commit()
     flash(f'El estado de "{period.name}" ha sido cambiado a {"Activo" if period.is_active else "Inactivo"}.', 'success')
     return redirect(url_for('admin.list_election_periods'))
@@ -415,6 +436,7 @@ def add_list(period_id):
             picture_file = save_picture(form.image.data, subfolder='list_images')
             new_list.image = picture_file
         db.session.add(new_list)
+        log_admin_action(f"Añadida lista '{new_list.name}' al periodo ID {period_id}")
         db.session.commit()
         flash('Nueva lista creada con éxito.', 'success')
     else:
@@ -432,6 +454,7 @@ def edit_list(list_id):
         if form.image.data:
             picture_file = save_picture(form.image.data, subfolder='list_images')
             candidate_list.image = picture_file
+        log_admin_action(f"Editada lista '{candidate_list.name}' (ID {list_id})")
         db.session.commit()
         flash('La lista ha sido actualizada.', 'success')
         return redirect(url_for('admin.manage_election_period', period_id=candidate_list.election_period_id))
@@ -444,6 +467,7 @@ def delete_list(list_id):
     candidate_list = CandidateList.query.get_or_404(list_id)
     period_id = candidate_list.election_period_id
     db.session.delete(candidate_list)
+    log_admin_action(f"Eliminada lista '{candidate_list.name}' (ID {list_id})")
     db.session.commit()
     flash('La lista ha sido eliminada.', 'success')
     return redirect(url_for('admin.manage_election_period', period_id=period_id))
@@ -503,6 +527,7 @@ def add_candidate(list_id):
             picture_file = save_picture(form.image.data, subfolder='candidate_pics')
             new_candidate.image = picture_file
         db.session.add(new_candidate)
+        log_admin_action(f"Añadido candidato '{new_candidate.name}' a la lista ID {list_id}")
         db.session.commit()
         flash('Nuevo candidato añadido con éxito.', 'success')
     else:
@@ -533,6 +558,7 @@ def edit_candidate(candidate_id):
         if form.image.data:
             picture_file = save_picture(form.image.data, subfolder='candidate_pics')
             candidate.image = picture_file
+        log_admin_action(f"Editado candidato '{candidate.name}' (ID {candidate_id})")
         db.session.commit()
         flash('El candidato ha sido actualizado.', 'success')
         return redirect(url_for('admin.manage_list', list_id=candidate.candidate_list_id))
@@ -550,6 +576,7 @@ def delete_candidate(candidate_id):
     candidate = Candidate.query.get_or_404(candidate_id)
     list_id = candidate.candidate_list_id
     db.session.delete(candidate)
+    log_admin_action(f"Eliminado candidato '{candidate.name}' (ID {candidate_id})")
     db.session.commit()
     flash('El candidato ha sido eliminado.', 'success')
     return redirect(url_for('admin.manage_list', list_id=list_id))
@@ -565,6 +592,7 @@ def edit_voter(voter_id):
         voter.name = form.name.data
         voter.lastname = form.lastname.data
         voter.cedula = form.cedula.data
+        log_admin_action(f"Editada información del votante '{voter.cedula}'")
         db.session.commit()
         flash('Información del votante actualizada.', 'success')
         if from_period_id:
@@ -613,6 +641,7 @@ def add_user():
         user = User(username=form.username.data, is_admin=form.is_admin.data)
         user.set_password(form.password.data)
         db.session.add(user)
+        log_admin_action(f"Creado usuario '{user.username}'")
         db.session.commit()
         flash(f'Usuario {user.username} creado exitosamente.', 'success')
         return redirect(url_for('admin.list_users'))
@@ -629,6 +658,7 @@ def toggle_admin(user_id):
         flash('No se pueden modificar los permisos de otro super administrador.', 'danger')
     else:
         user.is_admin = not user.is_admin
+        log_admin_action(f"Permisos de administrador {'otorgados' if user.is_admin else 'revocados'} al usuario '{user.username}'")
         db.session.commit()
         flash(f'{user.username} es ahora {"un administrador" if user.is_admin else "un usuario normal"}.', 'success')
     return redirect(url_for('admin.list_users'))
@@ -647,6 +677,7 @@ def edit_user(user_id):
         user.username = form.username.data
         if form.password.data:
             user.set_password(form.password.data)
+        log_admin_action(f"Editado usuario '{user.username}'")
         db.session.commit()
         flash('Usuario actualizado correctamente.', 'success')
         return redirect(url_for('admin.list_users'))
@@ -663,6 +694,7 @@ def delete_user(user_id):
     elif user.is_superadmin:
         flash('No puedes eliminar a un super administrador.', 'danger')
     else:
+        log_admin_action(f"Eliminado usuario '{user.username}' (ID {user_id})")
         db.session.delete(user)
         db.session.commit()
         flash(f'El usuario {user.username} ha sido eliminado del sistema.', 'success')
@@ -698,3 +730,160 @@ def revert_impersonation():
     
     flash('No se pudo restaurar la sesión original.', 'danger')
     return redirect(url_for('main.index'))
+
+@bp.route('/logs')
+@login_required
+@superadmin_required
+def view_audit_logs():
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    
+    query = AuditLog.query.join(User)
+    
+    if search:
+        search_term = f'%{search}%'
+        query = query.filter(db.or_(
+            AuditLog.action.ilike(search_term),
+            User.username.ilike(search_term)
+        ))
+        
+    pagination = query.order_by(AuditLog.timestamp.desc()).paginate(page=page, per_page=20, error_out=False)
+    
+    return render_template('admin/audit_logs.html', pagination=pagination, search=search)
+
+@bp.route('/election_periods/<int:period_id>/backup')
+@login_required
+@superadmin_required
+def generate_manual_backup(period_id):
+    from src.backup import generate_election_backup
+    try:
+        filepath = generate_election_backup(period_id)
+        log_admin_action(f"Generado respaldo manual para periodo ID {period_id}")
+        return send_file(filepath, as_attachment=True)
+    except Exception as e:
+        flash(f'Error al generar respaldo: {e}', 'danger')
+        return redirect(url_for('admin.list_election_periods'))
+
+@bp.route('/election_periods/restore', methods=['POST'])
+@login_required
+@superadmin_required
+def restore_backup():
+    if 'backup_file' not in request.files:
+        flash('No se subió ningún archivo.', 'danger')
+        return redirect(url_for('admin.list_election_periods'))
+        
+    file = request.files['backup_file']
+    if file.filename == '':
+        flash('Archivo no seleccionado.', 'danger')
+        return redirect(url_for('admin.list_election_periods'))
+        
+    if file and file.filename.endswith('.zip'):
+        from werkzeug.utils import secure_filename
+        from src.backup import restore_election_backup
+        
+        filename = secure_filename(file.filename)
+        filepath = os.path.join('src/static/uploads', filename)
+        file.save(filepath)
+        
+        try:
+            new_period_id = restore_election_backup(filepath)
+            flash('Respaldo restaurado con éxito. Se ha creado una copia exacta del periodo.', 'success')
+            return redirect(url_for('admin.manage_election_period', period_id=new_period_id))
+        except Exception as e:
+            flash(f'Error al restaurar el respaldo: {e}', 'danger')
+        finally:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    else:
+        flash('Formato no válido. Debe ser un archivo .zip', 'danger')
+        
+    return redirect(url_for('admin.list_election_periods'))
+
+@bp.route('/backups')
+@login_required
+@superadmin_required
+def list_backups():
+    from src.backup import get_backup_dir
+    import math
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    backup_dir = get_backup_dir()
+    backups = []
+    
+    if os.path.exists(backup_dir):
+        for filename in os.listdir(backup_dir):
+            if filename.endswith('.zip'):
+                filepath = os.path.join(backup_dir, filename)
+                size_bytes = os.path.getsize(filepath)
+                size_mb = size_bytes / (1024 * 1024)
+                creation_time = os.path.getctime(filepath)
+                
+                backups.append({
+                    'filename': filename,
+                    'size_mb': round(size_mb, 2),
+                    'date': datetime.fromtimestamp(creation_time)
+                })
+                
+    backups.sort(key=lambda x: x['date'], reverse=True)
+    
+    total = len(backups)
+    total_pages = math.ceil(total / per_page)
+    
+    # Prevenir páginas fuera de rango
+    if page < 1:
+        page = 1
+    if page > total_pages and total_pages > 0:
+        page = total_pages
+        
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_backups = backups[start_idx:end_idx]
+    
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total': total,
+        'pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages,
+        'prev_num': page - 1,
+        'next_num': page + 1
+    }
+    
+    return render_template('admin/manage_backups.html', backups=paginated_backups, pagination=pagination)
+
+@bp.route('/backups/download/<filename>')
+@login_required
+@superadmin_required
+def download_backup(filename):
+    from src.backup import get_backup_dir
+    from werkzeug.utils import secure_filename
+    safe_filename = secure_filename(filename)
+    filepath = os.path.join(get_backup_dir(), safe_filename)
+    
+    if os.path.exists(filepath):
+        log_admin_action(f"Descargado archivo de respaldo: {safe_filename}")
+        return send_file(filepath, as_attachment=True)
+    else:
+        flash('El archivo no existe.', 'danger')
+        return redirect(url_for('admin.list_backups'))
+
+@bp.route('/backups/delete/<filename>', methods=['POST'])
+@login_required
+@superadmin_required
+def delete_backup(filename):
+    from src.backup import get_backup_dir
+    from werkzeug.utils import secure_filename
+    safe_filename = secure_filename(filename)
+    filepath = os.path.join(get_backup_dir(), safe_filename)
+    
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        log_admin_action(f"Eliminado permanentemente el respaldo: {safe_filename}")
+        flash('Respaldo eliminado permanentemente del servidor.', 'success')
+    else:
+        flash('El archivo no existe.', 'danger')
+        
+    return redirect(url_for('admin.list_backups'))

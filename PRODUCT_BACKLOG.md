@@ -20,9 +20,13 @@ Este documento contiene una lista priorizada de funcionalidades, mejoras y corre
 
 - **Historia de Usuario (Prioridad: Media):** Como **desarrollador**, quiero **refactorizar la función `load_voters`** en `src/admin/routes.py` para que sea más legible, mantenible y menos propensa a errores.
 
-### Epic: Seguridad
+### Epic: Seguridad y Rendimiento
 
-- **Historia de Usuario (Prioridad: Media):** Como **administrador**, quiero tener un **registro de auditoría** de las acciones importantes (ej. creación de elecciones, carga de votantes) para poder rastrear cambios y responsabilidades.
+- **Historia de Usuario (Completada):** Como **administrador**, quiero tener un **registro de auditoría** de las acciones importantes (ej. creación de elecciones, carga de votantes) para poder rastrear cambios y responsabilidades.
+
+- **Historia de Usuario (Completada):** Como **administrador**, quiero que la **carga masiva de votantes por Excel** sea instantánea usando operaciones en bloque (Bulk Inserts) para evitar caídas del servidor con padrones de miles de estudiantes.
+
+- **Historia de Usuario (Completada):** Como **superadministrador**, quiero tener un sistema de **prevención de pérdida de datos (DLP)** que genere respaldos ZIP automáticamente al cerrar elecciones o antes de eliminar un periodo, y un **gestor visual** para restaurarlos.
 
 ---
 

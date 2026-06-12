@@ -66,10 +66,11 @@ La base de datos relacional define las siguientes entidades principales en `src/
 - **Autorización:** Se utiliza el decorador `@login_required` para proteger rutas, y decoradores personalizados como `@admin_required` y `@superadmin_required` (en `src/decorators.py`) para segmentar el acceso a los paneles.
 - **Protección CSRF:** Implementado automáticamente a través de `Flask-WTF` en todos los formularios de la aplicación.
 
-## 5. Procesamiento de Archivos y Cargas
+## 5. Procesamiento de Archivos, Rendimiento y Respaldos
 
 - **Listas y Candidatos:** Las imágenes de listas y candidatos se procesan a través de la función `save_picture` en `admin/routes.py`, la cual genera un token hexadecimal aleatorio (con el módulo `secrets`) para el nombre de archivo, evitando colisiones.
-- **Carga de Padrones:** Se utiliza la librería `pandas` para leer archivos `.xlsx` o `.csv`. La función `load_voters_from_excel` (en `src/utils.py`) optimiza la inserción extrayendo las cédulas y haciendo una "Bulk Query" para minimizar las consultas a la base de datos, asociándolos luego al periodo electoral actual.
+- **Carga de Padrones (Bulk Insert):** Se utiliza la librería `pandas` para leer archivos `.xlsx` o `.csv` y limpiar los datos (remover vacíos y duplicados). La función `load_voters_from_excel` (en `src/utils.py`) optimiza la inserción extrayendo las cédulas y haciendo inserciones masivas directamente con SQLAlchemy (`db.session.execute(insert())`). Adicionalmente, el algoritmo de encriptación de contraseñas de las nuevas cuentas se reduce inteligentemente a `10000 iteraciones` para no causar cuellos de botella (`Timeout`), permitiendo procesar miles de registros en pocos segundos.
+- **Motor de Respaldos (DLP):** La plataforma cuenta con un sistema de Data Loss Prevention. Al eliminar un periodo, se desencadena la generación de un archivo comprimido `.zip` con un respaldo estructurado (Excel, PDF y JSON), el cual es enviado al "Gestor de Respaldos" para su eventual restauración si fuese necesario. Los respaldos también pueden automatizarse mediante la librería `Flask-APScheduler`.
 
 ## 6. Lógica Crítica: Emisión de Votos
 

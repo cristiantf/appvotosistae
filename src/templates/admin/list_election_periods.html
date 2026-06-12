@@ -4,7 +4,16 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Periodos Electorales</h1>
-        <a href="{{ url_for('admin.add_election_period') }}" class="btn btn-primary">Añadir Nuevo Periodo</a>
+        <div>
+            {% if current_user.is_superadmin %}
+            <button type="button" class="btn btn-warning me-2 shadow-sm font-weight-bold" data-toggle="modal" data-target="#restoreModal">
+                <i class="fas fa-upload"></i> Restaurar Respaldo
+            </button>
+            {% endif %}
+            <a href="{{ url_for('admin.add_election_period') }}" class="btn btn-primary shadow-sm font-weight-bold">
+                <i class="fas fa-plus"></i> Añadir Nuevo Periodo
+            </a>
+        </div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -66,6 +75,11 @@
                         <a href="{{ url_for('admin.edit_election_period', period_id=period.id) }}" class="btn btn-outline-warning btn-sm me-md-2 mb-2">
                             <i class="fas fa-edit"></i> Editar
                         </a>
+                        {% if current_user.is_superadmin %}
+                        <a href="{{ url_for('admin.generate_manual_backup', period_id=period.id) }}" class="btn btn-outline-dark btn-sm me-md-2 mb-2" title="Descargar Respaldo (ZIP)">
+                            <i class="fas fa-download"></i> Respaldo
+                        </a>
+                        {% endif %}
                         <form action="{{ url_for('admin.delete_election_period', period_id=period.id) }}" method="POST" class="d-inline" onsubmit="confirmDeletion(event, this, 'Eliminar Periodo', '¿Estás seguro de que quieres eliminar este periodo electoral? TODO el contenido, listas y votos se perderán permanentemente.')">
                             <button type="submit" class="btn btn-outline-danger btn-sm mb-2"><i class="fas fa-trash-alt"></i> Eliminar</button>
                         </form>
@@ -88,4 +102,36 @@
         <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary-premium px-4"><i class="fas fa-arrow-left"></i> Volver al Panel de Control</a>
     </div>
 </div>
+
+{% if current_user.is_superadmin %}
+<!-- Modal para Restaurar Respaldo -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('admin.restore_backup') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title font-weight-bold" id="restoreModalLabel"><i class="fas fa-exclamation-triangle"></i> Restaurar Periodo Electoral</h5>
+                    <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted">Sube un archivo <strong>.zip</strong> generado previamente por el sistema de respaldos. Esta acción recreará el periodo electoral, las listas, dignidades, candidatos, padrón y resultados exactos.</p>
+                    <div class="form-group mb-0">
+                        <label for="backup_file" class="font-weight-bold">Archivo ZIP de Respaldo</label>
+                        <input type="file" class="form-control-file border p-2 rounded" id="backup_file" name="backup_file" accept=".zip" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning font-weight-bold shadow-sm" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Restaurando...'; this.classList.add('disabled');">
+                        <i class="fas fa-upload"></i> Ejecutar Restauración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

@@ -42,6 +42,7 @@ class ElectionPeriod(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     start_date = db.Column(db.DateTime, nullable=True)
     end_date = db.Column(db.DateTime, nullable=True)
+    backup_generated = db.Column(db.Boolean, default=False)
     voters = db.relationship('Voter', secondary=voter_period_association, backref='election_periods')
     lists = db.relationship('CandidateList', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")
     votes = db.relationship('Vote', backref='election_period', lazy='dynamic', cascade="all, delete-orphan")

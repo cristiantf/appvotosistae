@@ -42,6 +42,8 @@ usecaseDiagram
         usecase "Descargar Acta PDF" as UC13
         usecase "Gestionar Usuarios (SuperAdmin)" as UC14
         usecase "Impersonar Usuarios (Login As)" as UC15
+        usecase "Ver Registro de Auditoría" as UC16
+        usecase "Gestionar y Restaurar Respaldos" as UC17
     }
 
     Admin --> UC1
@@ -56,6 +58,8 @@ usecaseDiagram
     
     SuperAdmin --> UC14
     SuperAdmin --> UC15
+    SuperAdmin --> UC16
+    SuperAdmin --> UC17
 ```
 
 ---

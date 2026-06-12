@@ -25,6 +25,10 @@
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-chart-line"></i> Panel de Control</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.list_election_periods') }}"><i class="fas fa-list-alt"></i> Elecciones</a></li>
                         {% endif %}
+                        {% if current_user.is_superadmin %}
+                            <li class="nav-item"><a class="nav-link text-warning font-weight-bold" href="{{ url_for('admin.view_audit_logs') }}"><i class="fas fa-shield-alt"></i> Auditoría</a></li>
+                            <li class="nav-item"><a class="nav-link text-warning font-weight-bold" href="{{ url_for('admin.list_backups') }}"><i class="fas fa-archive"></i> Respaldos</a></li>
+                        {% endif %}
                         {% if session.get('impersonator_id') %}
                             <li class="nav-item ml-2"><a class="btn btn-warning btn-sm" href="{{ url_for('admin.revert_impersonation') }}"><i class="fas fa-undo"></i> Volver a mi rol</a></li>
                         {% endif %}
