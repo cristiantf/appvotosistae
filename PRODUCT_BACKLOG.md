@@ -35,8 +35,8 @@ Este documento contiene una lista priorizada de funcionalidades, mejoras y corre
 
 - **Historia de Usuario (Completada):** Como **desarrollador**, quiero **evitar la filtración de información sensible** en los mensajes de error para proteger la aplicación contra posibles ataques.
 
-- **Historia de Usuario (Completada):** Como **administrador**, quiero ver los **resultados de la votación en un dashboard con gráficos** para analizar la información de manera más visual e intuitiva.
+- **Historia de Usuario (Completada):** Como **administrador**, quiero ver los **resultados de la votación en un dashboard interactivo con gráficos premium** y poder **descargar un Acta de Escrutinio en PDF** para tener un respaldo físico y formal de la elección.
 
-- **Historia de Usuario (Completada):** Como **administrador**, quiero poder **editar y eliminar** períodos electorales, listas y candidatos para poder corregir errores y gestionar el ciclo de vida de las elecciones.
+- **Historia de Usuario (Completada):** Como **administrador**, quiero poder **editar y eliminar** períodos electorales, listas y candidatos a través de una interfaz de usuario moderna (estilo Premium) con modales de confirmación para evitar borrados accidentales.
 
-- **Historia de Usuario (Completada):** Como **votante**, quiero poder **ver los candidatos de cada lista** antes de emitir mi voto para tomar una decisión informada.
+- **Historia de Usuario (Completada):** Como **votante**, quiero poder **ver los candidatos de cada lista** (con sus fotos, nombres y dignidades estandarizadas) antes de emitir mi voto, en una papeleta moderna y fácil de usar en dispositivos móviles.

@@ -92,6 +92,12 @@ Reconstrucción completa de las plantillas utilizando principios de diseño mode
 - Temporizadores y contadores de tiempo en la UI (JavaScript).
 - Refinamiento y traducción de UI al español (Paneles de Control).
 
+#### Sprint 6: Actas Oficiales en PDF y Consolidación UI (Completado)
+- Rediseño del panel de Resultados con colores institucionales en `Chart.js` y tablas detalladas.
+- Integración de `fpdf2` en el backend para la generación programática de **Actas Oficiales de Escrutinio** en PDF.
+- Finalización de la migración UI Premium en los módulos de Candidatos y Dignidades.
+- Inyección de librerías modernas de interacción (SweetAlert2) para edición de datos.
+
 ## Verification Plan
 
 ### Automated Tests
@@ -100,5 +106,6 @@ Reconstrucción completa de las plantillas utilizando principios de diseño mode
 - Validar el control de acceso en base a las fechas de `ElectionPeriod`.
 
 ### Manual Verification
-- Validar mediante el navegador la responsividad del diseño en formato móvil.
+- Comprobar la descarga correcta del archivo PDF del Acta en diferentes navegadores.
+- Validar mediante el navegador la responsividad del diseño Premium en formato móvil.
 - Ejecutar un proceso electoral de inicio a fin simulando las franjas horarias y verificar bloqueos automáticos.

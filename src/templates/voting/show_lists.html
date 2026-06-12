@@ -65,7 +65,7 @@
                             {% endif %}
                         {% endif %}
                         
-                        <form action="{{ url_for('voting.cast_vote', period_id=period.id, list_id=clist.id) }}" method="POST" onsubmit="return confirm('¿Estás totalmente seguro de registrar tu voto por \'{{ clist.name }}\'?\n\nEsta acción es final y NO se puede deshacer.');" class="w-100 mt-auto pt-3">
+                        <form action="{{ url_for('voting.cast_vote', period_id=period.id, list_id=clist.id) }}" method="POST" class="w-100 mt-auto pt-3 vote-form" data-list-name="{{ clist.name }}">
                             <button type="submit" class="btn btn-premium btn-block w-100 py-3">
                                 <i class="fas fa-vote-yea"></i> 
                                 {% if 'nulo' in clist.name.lower() or 'blanco' in clist.name.lower() %}
@@ -93,4 +93,36 @@
         <a href="{{ url_for('main.index') }}" class="btn btn-secondary-premium px-4 py-2">Volver al Inicio</a>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const forms = document.querySelectorAll('.vote-form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const listName = this.getAttribute('data-list-name');
+                const isNuloOBlanco = listName.toLowerCase().includes('nulo') || listName.toLowerCase().includes('blanco');
+                const actionText = isNuloOBlanco ? 'registrar tu ' : 'votar por la ';
+                
+                Swal.fire({
+                    title: '¿Confirmar Voto?',
+                    html: `Estás a punto de ${actionText} <strong>${listName}</strong>.<br><br><span class="text-danger">Esta acción es final y NO se puede deshacer.</span>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#4361ee',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, registrar voto',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
 {% endblock %}

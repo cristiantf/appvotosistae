@@ -1,107 +1,186 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <h2 class="my-4">Resultados: {{ period.name }}</h2>
-    <hr>
-
-    <div class="row">
-        <!-- Gráfico de Resultados -->
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    Gráfico de Votos
-                </div>
-                <div class="card-body">
-                    <canvas id="resultsChart"></canvas>
-                </div>
-            </div>
+<div class="container mt-4 animate-slide-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 font-weight-bold text-primary">
+                <i class="fas fa-chart-pie text-info"></i> Resultados Oficiales
+            </h1>
+            <p class="text-muted mb-0">Periodo Electoral: <strong>{{ period.name }}</strong></p>
         </div>
-        <!-- Tabla de Resultados -->
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    Desglose de Votos
-                </div>
-                <div class="card-body">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Lista</th>
-                                <th>Votos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for i in range(chart_labels|length) %}
-                            <tr>
-                                <td>{{ chart_labels[i] }}</td>
-                                <td>{{ chart_data[i] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div>
+            <a href="{{ url_for('admin.download_acta_pdf', period_id=period.id) }}" class="btn btn-outline-danger me-2 shadow-sm">
+                <i class="fas fa-file-pdf"></i> Descargar Acta PDF
+            </a>
+            <button onclick="window.print()" class="btn btn-outline-secondary me-2 shadow-sm">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-secondary-premium shadow-sm">
+                <i class="fas fa-arrow-left"></i> Volver a Periodos
+            </a>
         </div>
     </div>
 
-    <div class="mt-4">
-        <a href="{{ url_for('admin.list_election_periods') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Volver a Periodos Electorales
-        </a>
+    <div class="row">
+        <!-- Gráfico de Resultados -->
+        <div class="col-lg-8 mb-4">
+            <div class="card card-premium shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="font-weight-bold text-primary"><i class="fas fa-chart-bar text-warning"></i> Tendencia de Votación</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:400px; width:100%">
+                        <canvas id="resultsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabla de Resultados -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-premium shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="font-weight-bold text-primary"><i class="fas fa-clipboard-list text-success"></i> Desglose Oficial</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-borderless align-middle mt-3">
+                            <thead class="border-bottom">
+                                <tr>
+                                    <th class="text-muted text-uppercase small">Lista / Opción</th>
+                                    <th class="text-muted text-uppercase small text-end">Votos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_votes = chart_data|sum %}
+                                {% for i in range(chart_labels|length) %}
+                                <tr>
+                                    <td class="font-weight-bold">
+                                        {% if 'nulo' in chart_labels[i]|lower or 'blanco' in chart_labels[i]|lower %}
+                                            <span class="text-secondary"><i class="fas fa-envelope text-muted me-2"></i> {{ chart_labels[i] }}</span>
+                                        {% else %}
+                                            <span class="text-dark"><i class="fas fa-flag text-primary me-2"></i> {{ chart_labels[i] }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-primary text-white rounded-pill px-3 py-2" style="font-size: 0.9rem;">
+                                            {{ chart_data[i] }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="border-top">
+                                <tr>
+                                    <td class="font-weight-bold text-dark pt-3">Total Sufragios</td>
+                                    <td class="text-end pt-3">
+                                        <span class="badge bg-dark text-white rounded-pill px-3 py-2" style="font-size: 0.95rem;">
+                                            {{ total_votes }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('resultsChart').getContext('2d');
+    
+    // Paleta de colores Premium
+    const bgColors = [
+        'rgba(67, 97, 238, 0.8)',   // Primary Blue
+        'rgba(76, 201, 240, 0.8)',  // Cyan
+        'rgba(247, 37, 133, 0.8)',  // Pink
+        'rgba(114, 9, 183, 0.8)',   // Purple
+        'rgba(252, 191, 73, 0.8)',  // Yellow/Orange
+        'rgba(108, 117, 125, 0.8)'  // Gray (for null/blank)
+    ];
+    
+    const borderColors = [
+        'rgba(67, 97, 238, 1)',
+        'rgba(76, 201, 240, 1)',
+        'rgba(247, 37, 133, 1)',
+        'rgba(114, 9, 183, 1)',
+        'rgba(252, 191, 73, 1)',
+        'rgba(108, 117, 125, 1)'
+    ];
+
     const resultsChart = new Chart(ctx, {
-        type: 'bar', // Tipo de gráfico
+        type: 'bar',
         data: {
             labels: {{ chart_labels|tojson }},
             datasets: [{
                 label: 'Número de Votos',
                 data: {{ chart_data|tojson }},
-                backgroundColor: [
-                    'rgba(54, 162, 235, 0.6)',
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(255, 206, 86, 0.6)',
-                    'rgba(153, 102, 255, 0.6)',
-                    'rgba(255, 159, 64, 0.6)'
-                ],
-                borderColor: [
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(153, 102, 255, 1)',
-                    'rgba(255, 159, 64, 1)'
-                ],
-                borderWidth: 1
+                backgroundColor: bgColors,
+                borderColor: borderColors,
+                borderWidth: 2,
+                borderRadius: 8, // Bordes redondeados en las barras
+                borderSkipped: false,
+                barPercentage: 0.6
             }]
         },
         options: {
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)',
+                        drawBorder: false
+                    },
                     ticks: {
-                        // Asegurar que solo se muestren enteros en el eje Y
-                        stepSize: 1
+                        stepSize: 1,
+                        font: {
+                            family: "'Inter', 'Segoe UI', sans-serif",
+                            size: 13
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        font: {
+                            family: "'Inter', 'Segoe UI', sans-serif",
+                            size: 13,
+                            weight: 'bold'
+                        }
                     }
                 }
             },
             responsive: true,
             plugins: {
                 legend: {
-                    display: false // Opcional: ocultar la leyenda si solo hay un dataset
+                    display: false
                 },
                 title: {
-                    display: true,
-                    text: 'Conteo de Votos por Lista'
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(25, 32, 40, 0.9)',
+                    titleFont: { size: 14, family: "'Inter', sans-serif" },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true
                 }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
             }
         }
     });

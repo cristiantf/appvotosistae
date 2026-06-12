@@ -3,6 +3,8 @@ import os
 import secrets
 import io
 import pandas as pd
+from datetime import datetime
+from fpdf import FPDF
 from flask import render_template, redirect, url_for, flash, request, current_app, send_file, session
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -150,6 +152,23 @@ def delete_dignity(dignity_id):
     flash('Dignidad eliminada.', 'success')
     return redirect(url_for('admin.manage_election_period', period_id=period_id))
 
+@bp.route('/dignities/<int:dignity_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_dignity(dignity_id):
+    dignity = Dignity.query.get_or_404(dignity_id)
+    period_id = dignity.election_period_id
+    new_name = request.form.get('name')
+    
+    if new_name and new_name.strip():
+        dignity.name = new_name.strip()
+        db.session.commit()
+        flash('Dignidad actualizada correctamente.', 'success')
+    else:
+        flash('El nombre del cargo no puede estar vacío.', 'danger')
+        
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
+
 @bp.route('/download_voter_template')
 @login_required
 @admin_required
@@ -266,6 +285,124 @@ def election_results(period_id):
                            period=period, 
                            chart_labels=chart_labels, 
                            chart_data=chart_data)
+
+class ActaPDF(FPDF):
+    def header(self):
+        self.set_font('helvetica', 'B', 15)
+        self.cell(0, 10, 'Acta Oficial de Escrutinio', border=0, align='C', new_x="LMARGIN", new_y="NEXT")
+        self.set_font('helvetica', 'I', 10)
+        self.cell(0, 10, 'Sistema de Votación Estudiantil - IPA26', border=0, align='C', new_x="LMARGIN", new_y="NEXT")
+        self.ln(10)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('helvetica', 'I', 8)
+        self.cell(0, 10, f'Página {self.page_no()}/{{nb}}', align='C')
+
+@bp.route('/election_periods/<int:period_id>/acta_pdf')
+@login_required
+@admin_required
+def download_acta_pdf(period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
+    
+    # Calcular resultados
+    results = db.session.query(
+        Vote.candidate_list_id,
+        func.count(Vote.id)
+    ).filter_by(election_period_id=period_id).group_by(Vote.candidate_list_id).all()
+    
+    votes_by_list = {list_id: count for list_id, count in results}
+    
+    chart_labels = []
+    chart_data = []
+    for clist in period.lists:
+        chart_labels.append(clist.name)
+        chart_data.append(votes_by_list.get(clist.id, 0))
+        
+    total_votes = sum(chart_data)
+    total_padron = len(period.voters)
+    participacion = (total_votes / total_padron * 100) if total_padron > 0 else 0
+    
+    # Crear PDF
+    pdf = ActaPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", size=12)
+    
+    # Información General
+    pdf.set_font("helvetica", 'B', 12)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.cell(0, 8, "Información de la Elección", new_x="LMARGIN", new_y="NEXT", fill=True)
+    
+    pdf.set_font("helvetica", '', 11)
+    pdf.cell(50, 8, "Periodo Electoral:")
+    pdf.set_font("helvetica", 'B', 11)
+    pdf.cell(0, 8, period.name, new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("helvetica", '', 11)
+    pdf.cell(50, 8, "Fecha de Inicio:")
+    pdf.set_font("helvetica", 'B', 11)
+    pdf.cell(0, 8, period.start_date.strftime('%Y-%m-%d %H:%M') if period.start_date else 'No definida', new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("helvetica", '', 11)
+    pdf.cell(50, 8, "Fecha de Cierre:")
+    pdf.set_font("helvetica", 'B', 11)
+    pdf.cell(0, 8, period.end_date.strftime('%Y-%m-%d %H:%M') if period.end_date else 'No definida', new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    # Participación
+    pdf.set_font("helvetica", 'B', 12)
+    pdf.cell(0, 8, "Resumen de Participación", new_x="LMARGIN", new_y="NEXT", fill=True)
+    
+    pdf.set_font("helvetica", '', 11)
+    pdf.cell(80, 8, "Estudiantes Empadronados (Habilitados):", border=1)
+    pdf.cell(40, 8, str(total_padron), border=1, align='R', new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.cell(80, 8, "Total de Votos Emitidos:", border=1)
+    pdf.cell(40, 8, str(total_votes), border=1, align='R', new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.cell(80, 8, "Porcentaje de Participación:", border=1)
+    pdf.cell(40, 8, f"{participacion:.2f}%", border=1, align='R', new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(8)
+    
+    # Desglose Oficial
+    pdf.set_font("helvetica", 'B', 12)
+    pdf.cell(0, 8, "Desglose Oficial de Votación", new_x="LMARGIN", new_y="NEXT", fill=True)
+    
+    pdf.set_font("helvetica", 'B', 11)
+    pdf.set_fill_color(220, 230, 255)
+    pdf.cell(120, 10, "Lista / Opción", border=1, fill=True)
+    pdf.cell(40, 10, "Votos Registrados", border=1, align='R', fill=True, new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("helvetica", '', 11)
+    for idx, list_name in enumerate(chart_labels):
+        votos = chart_data[idx]
+        pdf.cell(120, 10, list_name, border=1)
+        pdf.cell(40, 10, str(votos), border=1, align='R', new_x="LMARGIN", new_y="NEXT")
+        
+    pdf.ln(30)
+    
+    # Firmas
+    pdf.set_font("helvetica", '', 10)
+    pdf.cell(80, 8, "___________________________________", align='C')
+    pdf.cell(30, 8, "", align='C') # Espacio
+    pdf.cell(80, 8, "___________________________________", align='C', new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.cell(80, 5, "Presidente del Tribunal Electoral", align='C')
+    pdf.cell(30, 5, "", align='C')
+    pdf.cell(80, 5, "Secretario(a)", align='C', new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.ln(10)
+    pdf.set_font("helvetica", 'I', 8)
+    pdf.cell(0, 5, f"Documento generado automáticamente el {datetime.now().strftime('%Y-%m-%d a las %H:%M:%S')}", align='C')
+    
+    pdf_bytes = pdf.output()
+    
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        as_attachment=True,
+        download_name=f"Acta_Escrutinio_{period.name.replace(' ', '_')}.pdf",
+        mimetype='application/pdf'
+    )
 
 @bp.route('/election_periods/<int:period_id>/lists/add', methods=['POST'])
 @login_required
@@ -446,10 +583,15 @@ def list_users():
     search = request.args.get('search', '')
     role_filter = request.args.get('role', 'all')
     
-    query = User.query
+    query = User.query.outerjoin(Voter, User.voter_id == Voter.id)
     
     if search:
-        query = query.filter(User.username.ilike(f'%{search}%'))
+        search_term = f'%{search}%'
+        query = query.filter(db.or_(
+            User.username.ilike(search_term),
+            Voter.name.ilike(search_term),
+            Voter.lastname.ilike(search_term)
+        ))
         
     if role_filter == 'superadmin':
         query = query.filter(User.is_superadmin == True)

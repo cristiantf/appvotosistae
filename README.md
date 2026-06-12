@@ -9,14 +9,16 @@ Este proyecto es una aplicación web de votación construida con el micro-framew
   - Creación y gestión de períodos electorales con **automatización por fechas** y controles manuales de emergencia.
   - Carga masiva de padrones de votantes desde archivos Excel o CSV.
   - Sistema dinámico de Dignidades electorales.
+  - Generación de **Actas Oficiales de Escrutinio en PDF** (`fpdf2`).
   - Registro anónimo de votos para garantizar secreto y transparencia.
   - Función de impersonación (`Login As`) para auditoría y soporte por Super Admins.
 
-- **Plataforma de Votación para Usuarios:**
-  - Interfaz UI/UX moderna, responsive y accesible (estilo Premium).
+- **Plataforma de Votación y Resultados:**
+  - Interfaz UI/UX moderna, responsive y accesible basada en un diseño **Premium** de tarjetas e interacciones.
   - Iniciar sesión de forma segura con credenciales únicas.
   - Paneles de control temporizados con cuentas regresivas automáticas.
   - Visualización estructurada de las papeletas, incluyendo Voto Nulo y Voto en Blanco.
+  - Dashboard interactivo de Resultados con `Chart.js` rediseñado y exportación PDF.
   - Emisión de voto único garantizado por sistema anti-doble voto.
 
 ## Primeros Pasos

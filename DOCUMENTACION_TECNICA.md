@@ -9,6 +9,7 @@ El sistema está construido siguiendo una arquitectura Monolítica Modular (Mode
 - **ORM:** Flask-SQLAlchemy
 - **Base de Datos:** MySQL (Producción/Staging/Local)
 - **Migraciones:** Alembic (Flask-Migrate)
+- **Generación PDF:** fpdf2 (Generación nativa de reportes y actas)
 - **Frontend:** HTML5, Jinja2 Templates, Bootstrap 4, CSS Vainilla Premium
 - **Testing:** Pytest, pytest-flask
 

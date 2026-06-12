@@ -91,6 +91,11 @@ A partir de la revisión del código y la investigación sobre la normativa de e
 - **Temporizador Dinámico:** Implementación de relojes de cuenta regresiva automáticos (JavaScript) en la página principal para las elecciones futuras y activas.
 - **Traducción y Modernización Premium:** Migración del panel de administración (Dashboard y Lista de Periodos) a un diseño basado en tarjetas (Cards Premium), modernización visual de botones, alertas sin duplicados, y traducción completa al español (barras de navegación y controles).
 
+### Sprint 6: Actas Oficiales en PDF y Consolidación UI (Completado)
+- **Resultados Interactivos:** Rediseño del dashboard de resultados con una mejor paleta de colores para `Chart.js`, tooltips ampliados y tablas de conteo de votos con insignias y cálculo del total de sufragios.
+- **Actas en PDF (Backend):** Implementación de la librería `fpdf2` para generar el "Acta Oficial de Escrutinio". La lógica calcula automáticamente el porcentaje de participación, estructura el documento de manera inmutable y añade un pie de firma para las autoridades y fecha de emisión exacta, permitiendo descargas seguras desde el navegador.
+- **Estandarización Premium:** Refactorización visual de las pantallas de "Gestionar Candidatos", "Editar Candidato" y listas de administración, integrando Select2 mejorado, botones con etiquetas textuales y modales inteligentes con SweetAlert2 para edición y confirmación de destrucción de datos.
+
 ## 5. Próximos Pasos Inmediatos
-1. Validaciones documentales y requisitos académicos de candidatos.
-2. Generación automática de reportes PDF de resultados y actas de cierre.
+1. Validaciones documentales y requisitos académicos de candidatos en caso de ser necesario por el reglamento institucional.
+2. Escalabilidad: Implementar un servidor WSGI (Gunicorn/Waitress) para despliegue en producción.

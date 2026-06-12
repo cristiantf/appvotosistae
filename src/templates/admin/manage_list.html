@@ -1,35 +1,54 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex align-items-center mb-4">
-        {% if candidate_list.image %}
-            <img src="{{ url_for('static', filename=candidate_list.image) }}" alt="Imagen de la lista" class="img-thumbnail me-3" style="width: 80px; height: 80px; object-fit: cover;">
-        {% endif %}
-        <h1 class="h3 mb-0">Gestionar Candidatos para la Lista: <strong>{{ candidate_list.name }}</strong></h1>
+<div class="container mt-4 animate-slide-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            {% if candidate_list.image %}
+                <img src="{{ url_for('static', filename=candidate_list.image) }}" alt="Logo de la lista" class="rounded shadow-sm me-3 bg-white" style="width: 60px; height: 60px; object-fit: contain;">
+            {% else %}
+                <div class="rounded shadow-sm bg-light me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                    <i class="fas fa-flag text-secondary" style="font-size: 1.5rem;"></i>
+                </div>
+            {% endif %}
+            <h1 class="h3 mb-0 font-weight-bold text-primary">Gestionar Candidatos: <span class="text-dark">{{ candidate_list.name }}</span></h1>
+        </div>
+        <a href="{{ url_for('admin.manage_election_period', period_id=candidate_list.election_period_id) }}" class="btn btn-secondary-premium">
+            <i class="fas fa-arrow-left"></i> Volver al Periodo
+        </a>
     </div>
 
     <div class="row">
         <!-- Columna Izquierda: Añadir Nuevo Candidato -->
         <div class="col-md-5">
-            <div class="card">
-                <div class="card-header">Añadir Nuevo Candidato</div>
-                <div class="card-body">
+            <div class="card card-premium shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="font-weight-bold text-primary"><i class="fas fa-user-plus text-success"></i> Añadir Nuevo Candidato</h5>
+                </div>
+                <div class="card-body mt-2">
                     <form action="{{ url_for('admin.add_candidate', list_id=candidate_list.id) }}" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
-                        <div class="mb-3">
-                            {{ form.voter.label(class="form-label") }}
-                            {{ form.voter(class="form-control", id="voter-select") }}
+                        
+                        <div class="mb-4">
+                            {{ form.voter.label(class="form-label font-weight-bold", text="Seleccionar del Padrón") }}
+                            <p class="text-muted small mb-1">El estudiante debe estar habilitado en este periodo.</p>
+                            <div class="shadow-sm rounded">
+                                {{ form.voter(class="form-control", id="voter-select") }}
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            {{ form.dignity.label(class="form-label") }}
-                            {{ form.dignity(class="form-select") }}
+                        
+                        <div class="mb-4">
+                            {{ form.dignity.label(class="form-label font-weight-bold", text="Dignidad (Cargo a postular)") }}
+                            {{ form.dignity(class="form-control form-select shadow-sm") }}
                         </div>
-                        <div class="mb-3">
-                            {{ form.image.label(class="form-label") }} (Opcional)
-                            {{ form.image(class="form-control") }}
+                        
+                        <div class="mb-4">
+                            {{ form.image.label(class="form-label font-weight-bold", text="Foto del Candidato (Opcional)") }}
+                            <p class="text-muted small mb-1">Se recomienda una imagen cuadrada y clara.</p>
+                            {{ form.image(class="form-control shadow-sm") }}
                         </div>
-                        <button type="submit" class="btn btn-primary">Añadir Candidato</button>
+                        
+                        <button type="submit" class="btn btn-premium w-100 py-2"><i class="fas fa-plus-circle"></i> Inscribir Candidato</button>
                     </form>
                 </div>
             </div>
@@ -37,42 +56,52 @@
 
         <!-- Columna Derecha: Candidatos Existentes -->
         <div class="col-md-7">
-            <div class="card">
-                <div class="card-header">Candidatos Existentes</div>
-                {% if candidate_list.candidates %}
-                <ul class="list-group list-group-flush">
-                    {% for candidate in candidate_list.candidates %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            {% if candidate.image %}
-                                <img src="{{ url_for('static', filename=candidate.image) }}" alt="Foto del candidato" class="img-thumbnail me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 50%;">
-                            {% else %}
-                                <div class="me-3" style="width: 60px; height: 60px; background-color: #eee; border-radius: 50%;"></div>
-                            {% endif %}
-                            <div>
-                                <p class="mb-0"><strong>{{ candidate.name }}</strong></p>
-                                <p class="mb-0 text-muted">Dignidad: {{ candidate.dignity.name if candidate.dignity else 'Sin Asignar' }}</p>
+            <div class="card card-premium shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="font-weight-bold text-primary"><i class="fas fa-users text-info"></i> Candidatos Inscritos</h5>
+                </div>
+                
+                {% if candidate_list.candidates.count() > 0 %}
+                <div class="card-body p-0 mt-3">
+                    <ul class="list-group list-group-flush rounded-bottom">
+                        {% for candidate in candidate_list.candidates %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-light border-bottom">
+                            <div class="d-flex align-items-center">
+                                {% if candidate.image %}
+                                    <img src="{{ url_for('static', filename=candidate.image) }}" alt="Foto" class="rounded-circle shadow-sm me-3 border" style="width: 55px; height: 55px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle shadow-sm bg-white me-3 d-flex align-items-center justify-content-center border" style="width: 55px; height: 55px;">
+                                        <i class="fas fa-user-tie text-secondary" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="d-flex flex-column">
+                                    <span class="font-weight-bold text-dark">{{ candidate.name }}</span>
+                                    <span class="badge badge-primary align-self-start mt-1 px-2 py-1"><i class="fas fa-medal"></i> {{ candidate.dignity.name if candidate.dignity else 'Sin Asignar' }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-secondary">Editar</a>
-                            <form action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" method="post" class="d-inline ms-1" onsubmit="confirmDeletion(event, this, 'Eliminar Candidato', '¿Estás seguro de que quieres eliminar este candidato?')">
-                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-                            </form>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                <a href="{{ url_for('admin.edit_candidate', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-warning mb-1 mb-sm-0 me-0 me-sm-1">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <form action="{{ url_for('admin.delete_candidate', candidate_id=candidate.id) }}" method="post" class="m-0" onsubmit="confirmDeletion(event, this, 'Eliminar Candidato', '¿Estás seguro de que quieres eliminar la postulación de este candidato?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 {% else %}
                 <div class="card-body">
-                    <p class="text-center">No se encontraron candidatos para esta lista.</p>
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-user-slash mb-3 text-secondary" style="font-size: 3rem;"></i>
+                        <h5>No hay candidatos inscritos</h5>
+                        <p class="mb-0">Utiliza el formulario de la izquierda para registrar a los postulantes de esta lista.</p>
+                    </div>
                 </div>
                 {% endif %}
             </div>
         </div>
-    </div>
-    <div class="mt-4">
-        <a href="{{ url_for('admin.manage_election_period', period_id=candidate_list.election_period_id) }}" class="btn btn-secondary">Volver a las Listas de Candidatos</a>
     </div>
 </div>
 {% endblock %}
@@ -81,8 +110,14 @@
 <script>
     $(document).ready(function() {
         $('#voter-select').select2({
-            placeholder: "Escribe para buscar un votante...",
-            allowClear: true
+            placeholder: "Escribe cédula o nombre para buscar...",
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                  return "No se encontraron resultados en el padrón";
+                }
+            }
         });
     });
 </script>

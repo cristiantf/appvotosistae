@@ -17,7 +17,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                         </div>
-                        <input type="text" class="form-control" name="search" placeholder="Buscar por cédula o alias..." value="{{ search }}">
+                        <input type="text" class="form-control" name="search" placeholder="Buscar por cédula, nombres, apellidos o alias..." value="{{ search }}">
                     </div>
                 </div>
                 <div class="col-md-4 mb-2 mb-md-0">
@@ -39,7 +39,7 @@
         <table class="table table-hover mb-0">
             <thead class="bg-light">
                 <tr>
-                    <th class="border-top-0 border-bottom-0">Usuario</th>
+                    <th class="border-top-0 border-bottom-0">Usuario / Nombre</th>
                     <th class="border-top-0 border-bottom-0">Rol</th>
                     <th class="border-top-0 border-bottom-0 text-right">Acciones</th>
                 </tr>
@@ -47,7 +47,14 @@
             <tbody>
                 {% for user in pagination.items %}
                 <tr>
-                    <td class="align-middle font-weight-bold">{{ user.username }}</td>
+                    <td class="align-middle">
+                        <span class="font-weight-bold d-block">{{ user.username }}</span>
+                        {% if user.voter %}
+                            <small class="text-muted"><i class="fas fa-user-circle"></i> {{ user.voter.name }} {{ user.voter.lastname }}</small>
+                        {% else %}
+                            <small class="text-muted"><i class="fas fa-user-circle"></i> Sin datos en el padrón</small>
+                        {% endif %}
+                    </td>
                     <td class="align-middle">
                         {% if user.is_superadmin %}
                             <span class="badge badge-dark">Super Admin</span>
