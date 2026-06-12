@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, BooleanField, SelectField, FileField, PasswordField
 from wtforms.validators import DataRequired, ValidationError, Optional
-from src.models import Voter, ElectionPeriod
+from src.models import Voter, ElectionPeriod, User
 from flask_wtf.file import FileAllowed
 
 class FileUploadForm(FlaskForm):
@@ -80,6 +80,8 @@ class EditUserForm(FlaskForm):
 
 class CreateUserForm(FlaskForm):
     username = StringField('Username (Ej: Cédula o Alias)', validators=[DataRequired()])
+    name = StringField('Nombres', validators=[DataRequired()])
+    lastname = StringField('Apellidos', validators=[DataRequired()])
     password = PasswordField('Contraseña', validators=[DataRequired()])
     is_admin = BooleanField('Hacer Administrador')
     submit = SubmitField('Crear Usuario')

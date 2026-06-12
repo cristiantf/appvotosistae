@@ -12,6 +12,8 @@ voter_period_association = db.Table('voter_period_association',
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
+    name = db.Column(db.String(128), nullable=True)
+    lastname = db.Column(db.String(128), nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
     is_superadmin = db.Column(db.Boolean, default=False)
     password_hash = db.Column(db.String(256))
@@ -34,6 +36,7 @@ class Voter(db.Model):
     cedula = db.Column(db.String(20), unique=True, nullable=False)
     name = db.Column(db.String(128))
     lastname = db.Column(db.String(128))
+    face_descriptor = db.Column(db.Text, nullable=True) # Almacena el Array[128] en JSON
     participations = db.relationship('VoterParticipation', backref='voter', lazy='dynamic', cascade="all, delete-orphan")
     candidate_info = db.relationship('Candidate', backref='voter_info', uselist=False)
 

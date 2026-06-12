@@ -136,6 +136,23 @@
                 </div>
             </div>
 
+            <!-- Carga Individual (Manual) -->
+            <div class="card card-premium shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="font-weight-bold text-primary"><i class="fas fa-user-plus text-info"></i> Agregar Estudiante Manualmente</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Si el estudiante ya está registrado en el sistema, puedes buscarlo por <b>cédula</b>, <b>nombre</b> o <b>usuario</b>.</p>
+                    <form action="{{ url_for('admin.add_single_voter_to_period', period_id=period.id) }}" method="POST">
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" name="cedula" placeholder="Ej: 1723456789 o Juan Pérez..." required>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Agregar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Listado del Padrón -->
             <div class="card card-premium shadow-sm border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex justify-content-between align-items-center">

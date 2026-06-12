@@ -221,6 +221,72 @@ def delete_voter_from_period(voter_id, period_id):
         flash('El votante no se encuentra en este periodo electoral.', 'warning')
     return redirect(url_for('admin.manage_election_period', period_id=period_id))
 
+@bp.route('/election_periods/<int:period_id>/add_single_voter', methods=['POST'])
+@login_required
+@admin_required
+def add_single_voter_to_period(period_id):
+    period = ElectionPeriod.query.get_or_404(period_id)
+    search_term = request.form.get('cedula', '').strip()
+    
+    if not search_term:
+        flash('Debe ingresar un término de búsqueda.', 'danger')
+        return redirect(url_for('admin.manage_election_period', period_id=period_id))
+        
+    # Buscar en tabla Voter (por cédula exacta, nombre o apellido)
+    voters_found = Voter.query.filter(
+        db.or_(
+            Voter.cedula == search_term,
+            Voter.name.ilike(f'%{search_term}%'),
+            Voter.lastname.ilike(f'%{search_term}%'),
+            db.func.concat(Voter.name, ' ', Voter.lastname).ilike(f'%{search_term}%')
+        )
+    ).all()
+    
+    # Si no se encuentra Voter, buscar en tabla User
+    if not voters_found:
+        users_found = User.query.filter(
+            db.or_(
+                User.username == search_term,
+                User.name.ilike(f'%{search_term}%'),
+                User.lastname.ilike(f'%{search_term}%'),
+                db.func.concat(User.name, ' ', User.lastname).ilike(f'%{search_term}%')
+            )
+        ).all()
+        
+        if not users_found:
+            flash(f'No se encontró ningún estudiante o usuario registrado con la búsqueda "{search_term}".', 'danger')
+            return redirect(url_for('admin.manage_election_period', period_id=period_id))
+            
+        if len(users_found) > 1:
+            flash(f'Se encontraron varios usuarios con el término "{search_term}". Por favor ingresa el nombre de usuario o cédula exacta.', 'warning')
+            return redirect(url_for('admin.manage_election_period', period_id=period_id))
+            
+        user = users_found[0]
+        # Creamos el perfil de Voter si solo existía como User
+        voter = Voter(
+            cedula=user.username,
+            name=user.name or user.username,
+            lastname=user.lastname or ''
+        )
+        db.session.add(voter)
+        user.voter = voter
+        db.session.flush()
+    else:
+        if len(voters_found) > 1:
+            flash(f'Se encontraron varios estudiantes con el término "{search_term}". Por favor ingresa la cédula exacta.', 'warning')
+            return redirect(url_for('admin.manage_election_period', period_id=period_id))
+        voter = voters_found[0]
+        
+    if voter in period.voters:
+        flash(f'El estudiante {voter.name} {voter.lastname} ya pertenece al padrón de este periodo.', 'info')
+    else:
+        period.voters.append(voter)
+        log_admin_action(f"Agregado manualmente al padrón del periodo {period.name}: Cédula/Usuario {voter.cedula}")
+        db.session.commit()
+        flash(f'Estudiante {voter.name} {voter.lastname} agregado exitosamente al padrón.', 'success')
+        
+    return redirect(url_for('admin.manage_election_period', period_id=period_id))
+
 @bp.route('/election_periods/<int:period_id>/edit', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -624,7 +690,12 @@ def list_users():
 def add_user():
     form = CreateUserForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, is_admin=form.is_admin.data)
+        user = User(
+            username=form.username.data, 
+            name=form.name.data,
+            lastname=form.lastname.data,
+            is_admin=form.is_admin.data
+        )
         user.set_password(form.password.data)
         db.session.add(user)
         log_admin_action(f"Creado usuario '{user.username}'")

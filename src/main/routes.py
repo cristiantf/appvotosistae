@@ -1,9 +1,12 @@
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for, request, jsonify
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from src.main import bp
 from src.models import ElectionPeriod, CandidateList, Vote, User
-
+from flask_login import login_required, current_user
+from src import db
+from src.auth.forms import UserProfileForm
+from src.utils import save_picture
 
 @bp.route('/')
 @bp.route('/index')
@@ -61,10 +64,6 @@ def period_results(period_id):
 
     return render_template('main/period_results.html', period=period, lists_results=results, total_votes=total_votes)
 
-from flask_login import login_required, current_user
-from src import db
-from src.auth.forms import UserProfileForm
-from src.utils import save_picture
 
 @bp.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -86,4 +85,22 @@ def profile():
         flash('Tu perfil ha sido actualizado con éxito.', 'success')
         return redirect(url_for('main.profile'))
         
-    return render_template('main/profile.html', form=form)
+    return render_template('main/profile.html', title='Mi Perfil', form=form)
+
+@bp.route('/register_face', methods=['POST'])
+@login_required
+def register_face():
+    import json
+    data = request.get_json()
+    if not data or 'descriptor' not in data:
+        return jsonify({'success': False, 'message': 'Datos biométricos no recibidos'}), 400
+        
+    descriptor = data['descriptor']
+    if isinstance(descriptor, dict):
+        descriptor = list(descriptor.values())
+        
+    # Guardamos como JSON string en la base de datos
+    current_user.voter.face_descriptor = json.dumps(descriptor)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Face ID registrado exitosamente'})

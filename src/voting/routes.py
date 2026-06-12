@@ -78,3 +78,41 @@ def cast_vote(period_id, list_id):
         flash('Error al registrar tu voto. Por favor, intenta de nuevo.', 'danger')
 
     return redirect(url_for('main.index'))
+
+from flask import request, jsonify
+@bp.route('/validate_face', methods=['POST'])
+@login_required
+def validate_face():
+    import json
+    import numpy as np
+    
+    data = request.get_json()
+    if not data or 'descriptor' not in data:
+        return jsonify({'success': False, 'message': 'Descriptor no recibido'}), 400
+        
+    if not current_user.voter or not current_user.voter.face_descriptor:
+        return jsonify({'success': False, 'message': 'No tienes un Face ID registrado'}), 400
+        
+    try:
+        live_data = data['descriptor']
+        if isinstance(live_data, dict):
+            live_data = list(live_data.values())
+        live_descriptor = np.array(live_data, dtype=float)
+        
+        loaded_desc = json.loads(current_user.voter.face_descriptor)
+        if isinstance(loaded_desc, dict):
+            loaded_desc = list(loaded_desc.values())
+        registered_descriptor = np.array(loaded_desc, dtype=float)
+        
+        # Calcular distancia Euclidiana
+        distance = np.linalg.norm(live_descriptor - registered_descriptor)
+        
+        # Umbral de tolerancia (típicamente 0.6 para modelos face-api.js)
+        # Se subió a 0.62 para ser más permisivo con cámaras de menor resolución o mala luz.
+        if distance <= 0.62:
+            return jsonify({'success': True, 'match': True, 'distance': float(distance)})
+        else:
+            return jsonify({'success': True, 'match': False, 'distance': float(distance)})
+    except Exception as e:
+        print("Error validando rostro:", str(e))
+        return jsonify({'success': False, 'message': 'Error procesando biometría'}), 500

@@ -14,11 +14,30 @@
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                            {{ form.username.label(class="form-label font-weight-bold text-muted small") }}
+                            {{ form.username(class="form-control form-control-lg bg-light", placeholder="Ej: 1723456789 o admin1") }}
                             {% for error in form.username.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
+                                <span class="text-danger small"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
                             {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label font-weight-bold text-muted small") }}
+                            {{ form.name(class="form-control form-control-lg bg-light", placeholder="Ej: Juan Pablo") }}
+                            {% for error in form.name.errors %}
+                                <span class="text-danger small"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.lastname.label(class="form-label font-weight-bold text-muted small") }}
+                            {{ form.lastname(class="form-control form-control-lg bg-light", placeholder="Ej: Pérez Gómez") }}
+                            {% for error in form.lastname.errors %}
+                                <span class="text-danger small"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-4">
                             <small class="form-text text-muted">Ingresa la cédula o un alias para este usuario.</small>
                         </div>
 

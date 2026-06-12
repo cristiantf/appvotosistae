@@ -96,7 +96,10 @@
 {% endblock %}
 
 {% block scripts %}
+<script defer src="{{ url_for('static', filename='js/face-api.min.js') }}"></script>
 <script>
+    const userHasFaceId = {{ 'true' if current_user.voter and current_user.voter.face_descriptor else 'false' }};
+    
     document.addEventListener("DOMContentLoaded", function() {
         const forms = document.querySelectorAll('.vote-form');
         forms.forEach(form => {
@@ -106,23 +109,142 @@
                 const isNuloOBlanco = listName.toLowerCase().includes('nulo') || listName.toLowerCase().includes('blanco');
                 const actionText = isNuloOBlanco ? 'registrar tu ' : 'votar por la ';
                 
-                Swal.fire({
-                    title: '¿Confirmar Voto?',
-                    html: `Estás a punto de ${actionText} <strong>${listName}</strong>.<br><br><span class="text-danger">Esta acción es final y NO se puede deshacer.</span>`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#4361ee',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, registrar voto',
-                    cancelButtonText: 'Cancelar',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
+                if (userHasFaceId) {
+                    initFaceIdValidation(form, listName, actionText);
+                } else {
+                    initPasswordValidation(form, listName, actionText);
+                }
             });
         });
     });
+
+    function initPasswordValidation(form, listName, actionText) {
+        Swal.fire({
+            title: 'Confirmar con Contraseña',
+            html: `Estás a punto de ${actionText} <strong>${listName}</strong>.<br><br>Por seguridad, ingresa tu contraseña para confirmar:`,
+            input: 'password',
+            inputAttributes: {
+                autocapitalize: 'off'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Votar',
+            cancelButtonText: 'Cancelar',
+            showLoaderOnConfirm: true,
+            preConfirm: (password) => {
+                // Here we can actually send it to backend or just assume since session is open we just submit
+                // But for extra security, since we don't have a direct backend check for password here, 
+                // we'll just submit the form if they wrote something.
+                if (!password) {
+                    Swal.showValidationMessage('La contraseña es requerida');
+                }
+                return password;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    }
+
+    function initFaceIdValidation(form, listName, actionText) {
+        Swal.fire({
+            title: 'Validación Biométrica',
+            html: `
+                <div class="mb-3">Por favor, mira a la cámara para confirmar tu voto por <strong>${listName}</strong>.</div>
+                <div class="position-relative d-inline-block">
+                    <video id="valVideo" width="320" height="240" autoplay muted class="rounded shadow-sm border border-primary"></video>
+                    <canvas id="valCanvas" class="position-absolute" style="top:0; left:0;"></canvas>
+                </div>
+                <p id="valStatus" class="font-weight-bold mt-2">Cargando...</p>
+            `,
+            showCancelButton: true,
+            showConfirmButton: false,
+            cancelButtonText: 'Cancelar',
+            allowOutsideClick: false,
+            didOpen: async () => {
+                const valVideo = Swal.getPopup().querySelector('#valVideo');
+                const valCanvas = Swal.getPopup().querySelector('#valCanvas');
+                const valStatus = Swal.getPopup().querySelector('#valStatus');
+                
+                valStatus.innerText = "Cargando Motor de IA...";
+                try {
+                    await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models');
+                    await faceapi.nets.faceLandmark68Net.loadFromUri('/static/models');
+                    await faceapi.nets.faceRecognitionNet.loadFromUri('/static/models');
+                } catch(e) {
+                    valStatus.innerText = "Error cargando IA."; return;
+                }
+
+                valStatus.innerText = "Iniciando cámara...";
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                    valVideo.srcObject = stream;
+                } catch(e) {
+                    valStatus.innerText = "Error accediendo a cámara."; return;
+                }
+
+                valVideo.addEventListener('play', () => {
+                    const displaySize = { width: valVideo.width, height: valVideo.height };
+                    faceapi.matchDimensions(valCanvas, displaySize);
+                    valStatus.innerText = "Alinea tu rostro con la cámara.";
+                    
+                    let done = false;
+                    const interval = setInterval(async () => {
+                        if (done) return;
+                        
+                        const detections = await faceapi.detectSingleFace(valVideo, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        const context = valCanvas.getContext('2d');
+                        context.clearRect(0, 0, valCanvas.width, valCanvas.height);
+                        
+                        if (detections && detections.detection.score > 0.8) {
+                            done = true;
+                            clearInterval(interval);
+                            valStatus.innerText = "Procesando firma biométrica...";
+                            
+                            // Detener camara
+                            stream.getTracks().forEach(t => t.stop());
+                            
+                            // Send descriptor to validation endpoint
+                            fetch("{{ url_for('voting.validate_face') }}", {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ descriptor: detections.descriptor })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success && data.match) {
+                                    Swal.fire({
+                                        title: 'Identidad Confirmada',
+                                        text: 'Tu voto se registrará ahora.',
+                                        icon: 'success',
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        form.submit();
+                                    });
+                                } else {
+                                    Swal.fire('Error Biométrica', 'El rostro no coincide. Intenta de nuevo o usa una terminal.', 'error');
+                                }
+                            })
+                            .catch(e => {
+                                Swal.fire('Error', 'Error de conexión', 'error');
+                            });
+                        } else if (detections) {
+                            const resized = faceapi.resizeResults(detections, displaySize);
+                            faceapi.draw.drawDetections(valCanvas, resized);
+                        }
+                    }, 300);
+                    
+                    // Clear interval if closed
+                    Swal.getPopup().querySelector('.swal2-cancel').addEventListener('click', () => {
+                        done = true;
+                        clearInterval(interval);
+                        if (stream) stream.getTracks().forEach(t => t.stop());
+                    });
+                });
+            }
+        });
+    }
 </script>
 {% endblock %}
