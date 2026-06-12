@@ -873,3 +873,27 @@ def delete_backup(filename):
         flash('El archivo no existe.', 'danger')
         
     return redirect(url_for('admin.list_backups'))
+
+@bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def system_settings():
+    from src.models import SystemSettings
+    from src.admin.forms import SystemSettingsForm
+    
+    settings = SystemSettings.query.first()
+    if not settings:
+        settings = SystemSettings()
+        db.session.add(settings)
+        db.session.commit()
+        
+    form = SystemSettingsForm(obj=settings)
+    
+    if form.validate_on_submit():
+        form.populate_obj(settings)
+        db.session.commit()
+        log_admin_action('Se actualizó la configuración global del sistema de registro.')
+        flash('Configuración del sistema actualizada correctamente.', 'success')
+        return redirect(url_for('admin.system_settings'))
+        
+    return render_template('admin/settings.html', form=form, settings=settings)

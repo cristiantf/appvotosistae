@@ -71,6 +71,19 @@ def create_app(config_class=Config):
     from src import commands
     app.cli.add_command(commands.clean_orphans)
 
+    @app.context_processor
+    def inject_settings():
+        from src.models import SystemSettings
+        try:
+            settings = SystemSettings.query.first()
+            if not settings:
+                settings = SystemSettings()
+                db.session.add(settings)
+                db.session.commit()
+            return dict(settings=settings)
+        except Exception:
+            return dict(settings=None)
+
     return app
 
 from src import models

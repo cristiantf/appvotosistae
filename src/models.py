@@ -111,3 +111,24 @@ class AuditLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     details = db.Column(db.Text, nullable=True)
     user = db.relationship('User', backref=db.backref('audit_logs', lazy=True, cascade="all, delete-orphan"))
+
+class SystemSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    registration_enabled = db.Column(db.Boolean, default=True)
+    registration_start_date = db.Column(db.DateTime, nullable=True)
+    registration_end_date = db.Column(db.DateTime, nullable=True)
+
+    @property
+    def is_registration_open(self):
+        if not self.registration_enabled:
+            return False
+            
+        now = datetime.now()
+        
+        if self.registration_start_date and now < self.registration_start_date:
+            return False
+            
+        if self.registration_end_date and now > self.registration_end_date:
+            return False
+            
+        return True

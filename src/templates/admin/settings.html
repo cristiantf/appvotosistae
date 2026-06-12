@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-slide-up mt-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <h2 class="font-weight-bold text-dark"><i class="fas fa-cogs text-primary"></i> Configuración del Sistema</h2>
+            <p class="text-muted">Ajusta los parámetros globales de la aplicación</p>
+        </div>
+        <div class="col-md-6 text-md-right">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-arrow-left"></i> Volver al Panel</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card card-premium border-0 shadow-lg mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 text-primary font-weight-bold"><i class="fas fa-user-plus"></i> Control de Registros</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small mb-4">
+                        <i class="fas fa-info-circle text-info"></i> Usa estos controles para abrir o cerrar el padrón de registros. Puedes desactivarlo manualmente o definir un rango de fechas. Si defines fechas, el registro se desactivará automáticamente fuera de ese rango.
+                    </p>
+                    
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-check form-switch mb-4 p-3 bg-light rounded border">
+                            {{ form.registration_enabled(class="form-check-input", style="transform: scale(1.5); margin-right: 15px; margin-top: 5px;") }}
+                            {{ form.registration_enabled.label(class="form-check-label font-weight-bold text-dark", style="font-size: 1.1rem;") }}
+                            <small class="d-block text-muted mt-1" style="margin-left: 2rem;">Si desmarcas esta opción, nadie podrá registrarse, sin importar las fechas.</small>
+                            {% for error in form.registration_enabled.errors %}
+                                <span class="text-danger small d-block" style="margin-left: 2rem;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.registration_start_date.label(class="form-label text-muted font-weight-bold small") }}
+                                {{ form.registration_start_date(class="form-control") }}
+                                {% for error in form.registration_start_date.errors %}
+                                    <span class="text-danger small">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.registration_end_date.label(class="form-label text-muted font-weight-bold small") }}
+                                {{ form.registration_end_date(class="form-control") }}
+                                {% for error in form.registration_end_date.errors %}
+                                    <span class="text-danger small">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-right">
+                            {{ form.submit(class="btn btn-primary btn-lg shadow-sm font-weight-bold px-5") }}
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light border-top">
+                    <div class="d-flex align-items-center">
+                        <span class="mr-2 font-weight-bold text-muted small">Estado Actual:</span>
+                        {% if settings.is_registration_open %}
+                            <span class="badge bg-success text-white px-3 py-2"><i class="fas fa-check-circle"></i> REGISTRO ABIERTO</span>
+                        {% else %}
+                            <span class="badge bg-danger text-white px-3 py-2"><i class="fas fa-times-circle"></i> REGISTRO CERRADO</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

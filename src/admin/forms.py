@@ -88,3 +88,9 @@ class CreateUserForm(FlaskForm):
         user = User.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('Este nombre de usuario ya está en uso.')
+
+class SystemSettingsForm(FlaskForm):
+    registration_enabled = BooleanField('Habilitar Registro de Usuarios')
+    registration_start_date = DateTimeLocalField('Fecha de Inicio (Opcional)', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    registration_end_date = DateTimeLocalField('Fecha de Fin (Opcional)', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    submit = SubmitField('Guardar Configuración')

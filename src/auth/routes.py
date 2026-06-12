@@ -42,6 +42,12 @@ def logout():
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
+    from src.models import SystemSettings
+    settings = SystemSettings.query.first()
+    if settings and not settings.is_registration_open:
+        flash('El registro de nuevos usuarios está deshabilitado temporalmente.', 'warning')
+        return redirect(url_for('auth.login'))
+
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
     
