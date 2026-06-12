@@ -102,6 +102,15 @@ A partir de la revisión del código y la investigación sobre la normativa de e
 - **Carga Masiva Ultra-rápida:** Migración de importación de Excel a operaciones `Bulk Insert` en base de datos.
 - **Automatización Background:** Respaldos automáticos programados con APScheduler.
 
+### Sprint 8: Autenticación Biométrica (Face ID) y Control Global (Completado)
+- **Face ID Zero-Trust:** Implementación de reconocimiento facial con `face-api.js` (TensorFlow) en el navegador del usuario para extracción de vectores matemáticos (128d), asegurando que ninguna foto se transmita o guarde en el servidor.
+- **Validación Euclidiana:** Motor matemático en Python (`numpy`) que intercepta la intención de voto y pide la comprobación facial en vivo (Liveness Detection). Si la Distancia Euclidiana es menor a 0.62, sella la identidad y procesa el sufragio en milisegundos.
+- **Fallback Criptográfico:** Si el estudiante no cuenta con cámara, el sistema degrada de manera segura pidiéndole confirmar su contraseña actual antes de emitir el voto (doble factor lógico).
+- **Ajustes de Sistema Global:** Implementación de la vista y modelo `SystemSettings` para permitir a los Super Administradores abrir, cerrar o programar rangos de fechas automáticos para el registro libre de nuevos estudiantes.
+- **Padrón Inteligente:** Nuevo buscador difuso en la gestión de padrones. Permite a los administradores agregar estudiantes registrados manualmente buscando por cédula, alias o nombre real. Incluye generación automática de perfil `Voter` si este era inexistente para cuentas manuales.
+- **Modelos Refinados:** Se agregaron campos `name` y `lastname` nativos a la tabla `User` unificando la lectura de nombres entre módulos administrativos y de voto.
+
+
 ## 5. Próximos Pasos Inmediatos
 1. Validaciones documentales y requisitos académicos de candidatos en caso de ser necesario por el reglamento institucional.
 2. Escalabilidad: Implementar un servidor WSGI (Gunicorn/Waitress) para despliegue en producción.
